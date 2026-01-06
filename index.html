@@ -14,7 +14,7 @@
                 extend: {
                     colors: {
                         slate: { 850: '#151f32', 950: '#020617' },
-                        indigo: { 650: '#4f46e5' } // Tono optimizado
+                        indigo: { 650: '#4f46e5' }
                     },
                     boxShadow: {
                         'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.1)',
@@ -64,9 +64,6 @@
         /* Animations */
         @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-slide-in { animation: slideIn 0.3s ease-out forwards; }
-        
-        @keyframes pulse-success { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-        .animate-pulse-success { animation: pulse-success 0.2s ease-in-out; }
     </style>
 </head>
 <body class="text-slate-800 dark:text-slate-100 transition-colors duration-300 w-full overflow-x-hidden flex justify-center">
@@ -116,7 +113,7 @@
             extra: { label: 'Extra', color: '#8b5cf6', bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-200 dark:border-purple-800', text: 'text-purple-700 dark:text-purple-400', bar: 'bg-purple-500' },
         };
 
-        const STORAGE_KEY = 'finance_v37_optimized';
+        const STORAGE_KEY = 'finance_v38_unified_card';
 
         const formatCOP = (val) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
         const parseNum = (str) => { if (!str) return 0; const parsed = parseFloat(str); return isNaN(parsed) ? 0 : parsed; };
@@ -153,13 +150,14 @@
 
             const finalY = doc.lastAutoTable.finalY + 10;
             doc.text(`Ingreso Base: ${formatCOP(data.income)}`, 14, finalY);
-            doc.text(`Gastado Total: ${formatCOP(stats.totalSpent)}`, 14, finalY + 6);
-            doc.text(`Disponible Final: ${formatCOP(stats.balance)}`, 14, finalY + 12);
+            doc.text(`Ingresos Extra: ${formatCOP(stats.totalExtra)}`, 14, finalY + 6);
+            doc.text(`Gastado Total: ${formatCOP(stats.totalSpent)}`, 14, finalY + 12);
+            doc.text(`Disponible Final: ${formatCOP(stats.balance)}`, 14, finalY + 18);
 
             doc.save("finanzas_personales.pdf");
         };
 
-        // --- CARD DETALLADA (Optimizada) ---
+        // --- CARD DETALLADA ---
         const DetailedCard = ({ type, data, percentage }) => {
             const t = THEME[type];
             const limit = data.limit || 1;
@@ -196,7 +194,15 @@
             );
         };
 
-        // --- MODAL CONFIG (Estable v30) ---
+        // --- SMART ICON ---
+        const getSmartIcon = (name, category) => {
+            const lowerName = name.toLowerCase();
+            const map = { 'netflix': '🎬', 'spotify': '🎵', 'mercado': '🛒', 'comida': '🍔', 'uber': '🚕', 'transporte': '🚌', 'gasolina': '⛽', 'cine': '🍿', 'arriendo': '🏠', 'luz': '💡', 'agua': '💧', 'internet': '🌐', 'celular': '📱', 'gym': '💪', 'salud': '💊', 'regalo': '🎁', 'viaje': '✈️', 'ropa': '👕', 'cafe': '☕', 'cerveza': '🍺' };
+            for (const key in map) if (lowerName.includes(key)) return map[key];
+            switch(category) { case 'needs': return '🧾'; case 'wants': return '🎉'; case 'savings': return '💰'; case 'extra': return '💵'; default: return '🔹'; }
+        };
+
+        // --- MODAL CONFIG ---
         const ConfigModal = ({ tempConfig, setTempConfig, onSave, onClose, canClose, exportData, importData, resetAll }) => {
             const fileInputRef = useRef(null);
             const baseIncome = parseNum(tempConfig.incomeRaw);
@@ -244,10 +250,25 @@
             );
         };
 
+        const ConceptsModal = ({ concepts, setConcepts, onClose }) => {
+            const [newConcept, setNewConcept] = useState("");
+            const add = (e) => { e.preventDefault(); if(newConcept.trim()){ setConcepts([...concepts, newConcept.trim()]); setNewConcept(""); }};
+            return (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl p-5 border border-gray-200 dark:border-slate-700">
+                        <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2"><Icons.List/> Gestionar Conceptos</h3><button onClick={onClose}><Icons.X className="text-gray-400"/></button></div>
+                        <form onSubmit={add} className="flex gap-2 mb-4"><input className="flex-1 bg-gray-100 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm outline-none dark:text-white" value={newConcept} onChange={e=>setNewConcept(e.target.value)} autoFocus /><button className="bg-indigo-600 text-white rounded-lg px-3"><Icons.Plus/></button></form>
+                        <div className="max-h-60 overflow-y-auto custom-scrollbar flex flex-col gap-2">{concepts.map((c, i) => (<div key={i} className="flex justify-between items-center bg-gray-50 dark:bg-slate-800/50 px-3 py-2 rounded-lg"><span className="text-sm text-gray-700 dark:text-slate-300">{c}</span><button onClick={()=>setConcepts(concepts.filter((_,idx)=>idx!==i))} className="text-gray-400 hover:text-rose-500"><Icons.Trash/></button></div>))}</div>
+                    </div>
+                </div>
+            );
+        };
+
         function App() {
             const [data, setData] = useState(() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { income: 0, mNeeds: 0, mWants: 0, mSavings: 0, transactions: [], concepts: ['Mercado', 'Transporte'] }; } catch { return { income: 0, mNeeds: 0, mWants: 0, mSavings: 0, transactions: [], concepts: [] }; } });
             const [isDark, setIsDark] = useState(false);
             const [showConfig, setShowConfig] = useState(false);
+            const [showConcepts, setShowConcepts] = useState(false);
             const [tempConfig, setTempConfig] = useState({ incomeRaw: '', mNeeds: '', mWants: '', mSavings: '' });
             const [newTrans, setNewTrans] = useState({ name: '', amountRaw: '', category: 'needs' });
             const [filters, setFilters] = useState({ category: 'all', sort: 'date_desc' });
@@ -284,7 +305,8 @@
             return (
                 <div className="min-h-screen pb-20 transition-colors duration-500 w-full overflow-x-hidden">
                     {showConfig && <ConfigModal tempConfig={tempConfig} setTempConfig={setTempConfig} onSave={saveConfig} onClose={()=>setShowConfig(false)} canClose={data.income > 0} exportData={exportD} importData={importD} resetAll={reset} />}
-                    
+                    {showConcepts && <ConceptsModal concepts={data.concepts || []} setConcepts={(c)=>setData(p=>({...p, concepts: c}))} onClose={()=>setShowConcepts(false)} />}
+
                     <header className="bg-white/90 dark:bg-slate-900/90 backdrop-blur sticky top-0 z-40 border-b border-gray-200 dark:border-slate-800 px-4 py-3 flex justify-between items-center shadow-sm">
                         <div className="flex items-center gap-2"><div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">F</div><h1 className="font-bold text-gray-800 dark:text-white text-sm tracking-tight">Finanzas</h1></div>
                         <div className="flex gap-2">
@@ -295,12 +317,32 @@
 
                     <main className="max-w-md mx-auto px-4 mt-6 grid gap-5">
                         
-                        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-5 text-white shadow-lg flex justify-between items-end">
-                            <div><p className="text-indigo-100 text-[10px] uppercase font-bold tracking-wider mb-1">Disponible Real</p><h2 className="text-3xl font-mono font-bold">{formatCOP(stats.balance)}</h2></div>
-                            <div className="text-right"><p className="text-[10px] text-indigo-200 mb-1">Ingreso Base</p><p className="font-mono font-bold text-sm opacity-90">{formatCOP(data.income)}</p></div>
+                        {/* UNIFIED BALANCE CARD */}
+                        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 text-white shadow-xl">
+                            {/* Main: Available */}
+                            <div className="mb-6 text-center">
+                                <p className="text-indigo-100 text-xs uppercase font-bold tracking-wider mb-1">Disponible Real</p>
+                                <h2 className="text-5xl font-mono font-bold tracking-tight">{formatCOP(stats.balance)}</h2>
+                            </div>
+                            
+                            {/* Details Grid */}
+                            <div className="grid grid-cols-3 gap-4 border-t border-white/20 pt-4">
+                                <div className="text-center">
+                                    <p className="text-[10px] text-indigo-200 uppercase font-bold mb-1">Base</p>
+                                    <p className="font-mono font-bold text-sm">{formatCOP(data.income)}</p>
+                                </div>
+                                <div className="text-center border-x border-white/20 px-2">
+                                    <p className="text-[10px] text-indigo-200 uppercase font-bold mb-1">Extra (+)</p>
+                                    <p className="font-mono font-bold text-sm text-emerald-300">{stats.totalExtra > 0 ? '+' : ''}{formatCOP(stats.totalExtra)}</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-[10px] text-indigo-200 uppercase font-bold mb-1">Gastado (-)</p>
+                                    <p className="font-mono font-bold text-sm text-rose-300">-{formatCOP(stats.totalSpent)}</p>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Health Bar (Sugerencia Optimizada) */}
+                        {/* Health Bar */}
                         <div className="flex h-2 w-full rounded-full overflow-hidden bg-gray-200 dark:bg-slate-800">
                             <div className="bg-blue-500 h-full" style={{width: `${Math.min((stats.spent.needs/data.income)*100, 100)}%`}}></div>
                             <div className="bg-pink-500 h-full" style={{width: `${Math.min((stats.spent.wants/data.income)*100, 100)}%`}}></div>
@@ -313,18 +355,10 @@
                             <DetailedCard type="savings" data={{limit: stats.limits.savings, spent: stats.spent.savings}} percentage={data.percentages?.savings || 0} />
                         </div>
 
-                        <div className="bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-800 p-4 rounded-xl flex justify-between items-center shadow-sm">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-rose-100 dark:bg-rose-900/30 text-rose-600 rounded-lg"><Icons.Trash/></div>
-                                <div><p className="text-[10px] text-gray-500 dark:text-slate-400 font-bold uppercase">Total Gastado</p><p className="text-base font-mono font-bold text-gray-800 dark:text-white">{formatCOP(stats.totalSpent)}</p></div>
-                            </div>
-                            {stats.totalExtra > 0 && <div className="text-right"><p className="text-[10px] text-purple-500 font-bold uppercase">Extra (+)</p><p className="font-mono text-purple-600 dark:text-purple-400 font-bold text-sm">{formatCOP(stats.totalExtra)}</p></div>}
-                        </div>
-
                         <button onClick={()=>generatePDF(data, stats)} className="w-full py-3 bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-800 text-indigo-600 dark:text-indigo-400 font-bold rounded-xl shadow-sm flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-slate-800 text-xs"><Icons.PDF/> Descargar Extracto PDF</button>
 
                         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-gray-300 dark:border-slate-800 shadow-lg">
-                            <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-gray-700 dark:text-white text-sm">Nuevo Movimiento</h3></div>
+                            <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-gray-700 dark:text-white text-sm">Nuevo Movimiento</h3><button onClick={()=>setShowConcepts(true)} className="text-xs text-indigo-600 font-bold hover:underline flex items-center gap-1"><Icons.List/> Conceptos</button></div>
                             <form onSubmit={addTrans} className="flex flex-col gap-3">
                                 <div className="flex gap-2">
                                     <input list="concepts" className="flex-1 bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 dark:text-white" placeholder="Concepto" value={newTrans.name} onChange={e=>setNewTrans({...newTrans, name:e.target.value})} />
@@ -344,7 +378,7 @@
                                 {filtered.length === 0 ? <div className="p-8 text-center text-gray-400 text-xs">Sin registros.</div> : filtered.map(t => (
                                     <div key={t.id} className="flex justify-between items-center p-3 border-b border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800 transition">
                                         <div className="flex items-center gap-3">
-                                            <div className="text-lg">{t.category==='extra'?'💵':(t.category==='savings'?'💰':(t.category==='needs'?'🧾':'🎉'))}</div>
+                                            <div className="text-lg">{getSmartIcon(t.name, t.category)}</div>
                                             <div><p className="text-xs font-bold text-gray-800 dark:text-white">{t.name}</p><p className={`text-[9px] uppercase font-bold ${THEME[t.category].text}`}>{THEME[t.category].label}</p></div>
                                         </div>
                                         <div className="flex items-center gap-2">
