@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finanzas v20 - Edición Libre</title>
+    <title>Finanzas v24 - Sincronización Perfecta</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -29,12 +29,11 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
         
         input[type=range] { -webkit-appearance: none; background: transparent; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #ffffff; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #ffffff; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(0,0,0,0.5); transition: transform 0.1s; }
+        input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #334155; border-radius: 2px; }
         
-        /* Eliminar flechas de inputs numéricos */
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
     </style>
 </head>
@@ -47,12 +46,13 @@
         const RechartsObj = window.Recharts || { PieChart: () => null, Pie: () => null, Cell: () => null, ResponsiveContainer: ({children}) => <div>{children}</div>, Tooltip: () => null };
         const { PieChart, Pie, Cell, ResponsiveContainer, Tooltip: RechartsTooltip } = RechartsObj;
 
-        // --- ICONOS ---
+        // --- ICONS ---
         const Icon = ({ p, c = "" }) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={c} {...p} />;
-        const Settings = (p) => <Icon p={p}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></Icon>;
+        const SettingsIcon = (p) => <Icon p={p}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></Icon>;
         const Trash2 = (p) => <Icon p={p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></Icon>;
         const Save = (p) => <Icon p={p}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></Icon>;
         const RefreshCw = (p) => <Icon p={p}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></Icon>;
+        const Zap = (p) => <Icon p={p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></Icon>;
 
         const THEME = {
             needs: { main: '#38bdf8', bg: 'bg-sky-500/10', border: 'border-sky-500/30', text: 'text-sky-400', bar: 'bg-sky-500', label: 'Fijos' },
@@ -60,10 +60,211 @@
             savings: { main: '#34d399', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400', bar: 'bg-emerald-500', label: 'Ahorro' },
         };
 
-        const STORAGE_KEY = 'finance_v20_text_mode';
+        const STORAGE_KEY = 'finance_v24_perfect_sync';
 
+        const formatCOP = (val) => {
+            if (!val && val !== 0) return '$ 0';
+            return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
+        };
+
+        const parseNum = (str) => {
+            if (!str) return 0;
+            const parsed = parseFloat(str);
+            return isNaN(parsed) ? 0 : parsed;
+        };
+
+        // --- COMPONENTE MODAL ROBUSTO ---
+        const ConfigModal = ({ 
+            tempConfig, 
+            setTempConfig, 
+            onSave, 
+            onClose, 
+            canClose, 
+            totalPercentage, 
+            isConfigValid,
+            resetAll
+        }) => {
+            
+            const baseIncome = parseNum(tempConfig.incomeRaw);
+
+            // 1. Manejo del Ingreso Principal
+            const handleIncomeChange = (e) => {
+                const newIncome = e.target.value;
+                setTempConfig(prev => {
+                    // Al cambiar ingreso, recalculamos el DINERO de cada categoría para mantener el % fijo (comportamiento estándar)
+                    // OJO: También actualizamos los campos de dinero (mNeeds, etc)
+                    const incomeNum = parseNum(newIncome);
+                    return {
+                        ...prev,
+                        incomeRaw: newIncome,
+                        // Recalcular montos en dinero basados en los porcentajes actuales
+                        mNeeds: Math.round(incomeNum * (parseNum(prev.pNeeds) / 100)).toString(),
+                        mWants: Math.round(incomeNum * (parseNum(prev.pWants) / 100)).toString(),
+                        mSavings: Math.round(incomeNum * (parseNum(prev.pSavings) / 100)).toString(),
+                    }
+                });
+            };
+
+            // 2. Manejo desde PORCENTAJE (Slider o Input %)
+            const handlePercentChange = (category, valStr) => {
+                setTempConfig(prev => {
+                    const pVal = parseNum(valStr);
+                    const incomeNum = parseNum(prev.incomeRaw);
+                    // Calculamos el dinero correspondiente a este nuevo porcentaje
+                    const moneyVal = incomeNum > 0 ? Math.round(incomeNum * (pVal / 100)) : 0;
+                    
+                    return {
+                        ...prev,
+                        [`p${category}`]: valStr, // Guardamos el string tal cual para el input
+                        [`m${category}`]: moneyVal.toString() // Actualizamos el dinero derivado
+                    };
+                });
+            };
+
+            // 3. Manejo desde DINERO (Input $)
+            const handleMoneyChange = (category, valStr) => {
+                setTempConfig(prev => {
+                    // Aquí está la clave: Actualizamos el dinero DIRECTAMENTE sin redondear
+                    // El porcentaje se calcula solo como referencia visual, pero no sobreescribe el input de dinero
+                    const moneyNum = parseNum(valStr);
+                    const incomeNum = parseNum(prev.incomeRaw);
+                    const percentVal = incomeNum > 0 ? (moneyNum / incomeNum) * 100 : 0;
+
+                    return {
+                        ...prev,
+                        [`m${category}`]: valStr, // Guardamos lo que el usuario escribe
+                        [`p${category}`]: percentVal.toFixed(2) // Actualizamos el % (esto afectará al slider y al input de %, que es correcto)
+                    };
+                });
+            };
+
+            // 4. Auto-Completar
+            const fillRemainder = (targetCat) => {
+                const categories = ['Needs', 'Wants', 'Savings'];
+                const others = categories.filter(c => c !== targetCat);
+                
+                const sumOthersP = others.reduce((acc, c) => acc + parseNum(tempConfig[`p${c}`]), 0);
+                const remainderP = 100 - sumOthersP;
+                
+                if (remainderP >= 0) {
+                    // Actualizamos usando la lógica de porcentaje
+                    handlePercentChange(targetCat, remainderP.toFixed(2));
+                } else {
+                    alert("Los otros porcentajes ya suman más del 100%");
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50 p-4">
+                    <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-xl p-6 shadow-2xl max-h-[95vh] overflow-y-auto custom-scrollbar">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold text-white flex items-center gap-2"><SettingsIcon className="text-indigo-400"/> Configuración</h2>
+                            {canClose && <button onClick={onClose} className="text-slate-400 hover:text-white p-2 text-xl">✕</button>}
+                        </div>
+                        
+                        <div className="space-y-6 mb-8">
+                            {/* Input Ingreso */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Ingreso Mensual Base</label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-4 text-slate-500 font-bold">$</span>
+                                    <input 
+                                        type="number" 
+                                        inputMode="decimal"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 pl-8 text-white font-mono font-bold text-xl focus:border-indigo-500 outline-none" 
+                                        value={tempConfig.incomeRaw} 
+                                        onChange={handleIncomeChange}
+                                        placeholder="0" 
+                                    />
+                                </div>
+                                <div className="mt-2 flex justify-end">
+                                    <span className="text-sm font-mono text-emerald-400 font-bold bg-slate-800/50 px-3 py-1 rounded-lg border border-slate-700">
+                                        Vista: {formatCOP(baseIncome)}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Distribución */}
+                            <div className="p-4 bg-slate-800/40 rounded-xl border border-slate-700/50 space-y-6">
+                                <div className="flex justify-between items-center border-b border-slate-700 pb-2">
+                                    <p className="text-xs font-bold text-slate-300">Distribución (Total: {totalPercentage.toFixed(1)}%)</p>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded ${isConfigValid ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"}`}>
+                                        {isConfigValid ? "Perfecto" : "Ajustar"}
+                                    </span>
+                                </div>
+                                
+                                {[
+                                    { label: 'Fijos', cat: 'Needs', color: 'accent-sky-500', text: 'text-sky-400' },
+                                    { label: 'Gustos', cat: 'Wants', color: 'accent-pink-500', text: 'text-pink-400' },
+                                    { label: 'Ahorro', cat: 'Savings', color: 'accent-emerald-500', text: 'text-emerald-400' }
+                                ].map((item) => (
+                                    <div key={item.cat} className="space-y-3">
+                                        <div className="flex justify-between items-end">
+                                            <span className={`text-sm font-bold ${item.text}`}>{item.label}</span>
+                                            <button onClick={() => fillRemainder(item.cat)} className="text-[10px] flex items-center gap-1 text-slate-500 hover:text-white transition-colors bg-slate-700/50 px-2 py-1 rounded hover:bg-slate-600">
+                                                <Zap className="w-3 h-3 text-yellow-400"/> Llenar resto
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {/* Input Porcentaje */}
+                                            <div className="relative">
+                                                <input 
+                                                    type="number"
+                                                    inputMode="decimal"
+                                                    className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-2 text-right text-white font-mono text-sm focus:border-indigo-500 outline-none"
+                                                    value={tempConfig[`p${item.cat}`]}
+                                                    onChange={(e) => handlePercentChange(item.cat, e.target.value)}
+                                                />
+                                                <span className="absolute right-8 top-2 text-slate-500 text-xs pointer-events-none">%</span>
+                                            </div>
+
+                                            {/* Input Dinero */}
+                                            <div className="relative">
+                                                <span className="absolute left-2 top-2 text-slate-500 text-xs pointer-events-none">$</span>
+                                                <input 
+                                                    type="number"
+                                                    inputMode="decimal"
+                                                    className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-2 pl-5 text-right text-emerald-400 font-mono text-sm focus:border-emerald-500 outline-none"
+                                                    value={tempConfig[`m${item.cat}`]}
+                                                    onChange={(e) => handleMoneyChange(item.cat, e.target.value)}
+                                                    placeholder="0"
+                                                    disabled={baseIncome <= 0}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Slider */}
+                                        <input 
+                                            type="range" min="0" max="100" step="0.1" 
+                                            className={`w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer ${item.color}`}
+                                            value={parseNum(tempConfig[`p${item.cat}`])} 
+                                            onChange={(e) => handlePercentChange(item.cat, e.target.value)} 
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            <button onClick={onSave} disabled={!isConfigValid || baseIncome <= 0} 
+                                className={`w-full py-3.5 rounded-lg font-bold text-sm flex justify-center items-center gap-2 transition-all ${(!isConfigValid || baseIncome <= 0) ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'}`}>
+                                <Save className="w-4 h-4"/> Guardar Configuración
+                            </button>
+                            
+                            {canClose && 
+                                <button onClick={resetAll} className="mt-2 text-xs text-rose-500/50 hover:text-rose-500 underline text-center w-full py-2">
+                                    Reiniciar de fábrica
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- APP PRINCIPAL ---
         function App() {
-            // --- ESTADO PRINCIPAL ---
             const [data, setData] = useState(() => {
                 try {
                     const saved = localStorage.getItem(STORAGE_KEY);
@@ -77,50 +278,46 @@
 
             const [showConfig, setShowConfig] = useState(false);
             
-            // --- ESTADO TEMPORAL DE CONFIGURACIÓN (TEXTO PURO) ---
-            // Usamos strings vacios '' para inputs vacios, permitiendo borrar todo sin que salga NaN
+            // Estado Temporal con DOBLE FUENTE DE VERDAD (p=percent, m=money)
             const [tempConfig, setTempConfig] = useState({ 
-                incomeStr: '',  // "1000000"
-                pNeedsStr: '50', 
-                pWantsStr: '30', 
-                pSavingsStr: '20' 
+                incomeRaw: '',  
+                pNeeds: '50', mNeeds: '0',
+                pWants: '30', mWants: '0',
+                pSavings: '20', mSavings: '0'
             });
             
-            const [newTrans, setNewTrans] = useState({ name: '', amount: '', category: 'needs' });
+            const [newTrans, setNewTrans] = useState({ name: '', amountRaw: '', category: 'needs' });
             const [currentDate, setCurrentDate] = useState(new Date());
 
-            // --- EFECTOS ---
             useEffect(() => {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
             }, [data]);
 
-            // Cargar datos al abrir el modal (Convertir números a string para edición)
+            // Cargar datos al abrir modal
             useEffect(() => {
                 if (showConfig || data.income === 0) {
+                    const inc = data.income;
+                    const pN = data.percentages.needs;
+                    const pW = data.percentages.wants;
+                    const pS = data.percentages.savings;
+                    
                     setTempConfig({
-                        incomeStr: data.income === 0 ? '' : String(data.income),
-                        pNeedsStr: String(data.percentages.needs),
-                        pWantsStr: String(data.percentages.wants),
-                        pSavingsStr: String(data.percentages.savings)
+                        incomeRaw: inc === 0 ? '' : String(inc),
+                        pNeeds: String(pN),
+                        mNeeds: Math.round(inc * (pN/100)).toString(),
+                        pWants: String(pW),
+                        mWants: Math.round(inc * (pW/100)).toString(),
+                        pSavings: String(pS),
+                        mSavings: Math.round(inc * (pS/100)).toString(),
                     });
                 }
             }, [showConfig, data.income]);
 
-            // --- VALIDACIONES ---
-            const parseNum = (str) => {
-                if (!str) return 0;
-                // Reemplazamos comas por puntos si el usuario usa comas decimales
-                const normalized = str.replace(',', '.');
-                const parsed = parseFloat(normalized);
-                return isNaN(parsed) ? 0 : parsed;
-            };
-
-            const sumP = parseNum(tempConfig.pNeedsStr) + parseNum(tempConfig.pWantsStr) + parseNum(tempConfig.pSavingsStr);
-            // Redondeo simple para evitar errores de punto flotante
+            // Cálculos
+            const sumP = parseNum(tempConfig.pNeeds) + parseNum(tempConfig.pWants) + parseNum(tempConfig.pSavings);
             const totalPercentage = Math.round(sumP * 100) / 100; 
-            const isConfigValid = Math.abs(totalPercentage - 100) < 0.1;
+            const isConfigValid = Math.abs(totalPercentage - 100) < 0.2; // Tolerancia leve
 
-            // --- ESTADÍSTICAS ---
             const filteredTransactions = useMemo(() => {
                 return data.transactions.filter(t => {
                     const d = new Date(t.date);
@@ -146,51 +343,26 @@
                 };
 
                 const balance = data.income - totalSpent;
-
                 return { spent, limits, totalSpent, balance };
             }, [filteredTransactions, data.income, data.percentages]);
 
-            // --- HANDLERS ---
-            const formatCOP = (val) => {
-                if (!val && val !== 0) return '$ 0';
-                return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
-            };
-            
-            // Handler Universal de Texto: Permite escribir CUALQUIER COSA mientras se edita
-            const handleTextChange = (field, value) => {
-                // Solo permitimos digitos y un punto/coma decimal para los porcentajes
-                // Para ingresos solo digitos
-                let cleanVal = value;
-                
-                if (field === 'incomeStr') {
-                     // Solo números para ingreso, eliminamos puntos y comas
-                     cleanVal = value.replace(/[^0-9]/g, '');
-                } 
-                // Para porcentajes dejamos pasar todo para no bloquear, validamos al guardar
-                
-                setTempConfig(prev => ({ ...prev, [field]: cleanVal }));
-            };
-
             const saveConfig = (e) => {
                 e.preventDefault();
-                const incomeVal = parseNum(tempConfig.incomeStr);
+                const incomeVal = parseNum(tempConfig.incomeRaw);
                 
-                if (incomeVal <= 0) {
-                    alert("El ingreso debe ser mayor a 0");
-                    return;
-                }
+                if (incomeVal <= 0) return;
                 if (!isConfigValid) {
-                     alert(`Los porcentajes suman ${totalPercentage}%. Deben sumar 100%.`);
-                     return;
+                    alert(`Los porcentajes suman ${totalPercentage}%. Ajusta los valores para que sumen 100%.`);
+                    return;
                 }
 
                 setData(prev => ({
                     ...prev,
                     income: incomeVal,
                     percentages: {
-                        needs: parseNum(tempConfig.pNeedsStr),
-                        wants: parseNum(tempConfig.pWantsStr),
-                        savings: parseNum(tempConfig.pSavingsStr)
+                        needs: parseNum(tempConfig.pNeeds),
+                        wants: parseNum(tempConfig.pWants),
+                        savings: parseNum(tempConfig.pSavings)
                     }
                 }));
                 setShowConfig(false);
@@ -198,16 +370,19 @@
 
             const addTransaction = (e) => {
                 e.preventDefault();
-                if (!newTrans.name || !newTrans.amount) return;
+                if (!newTrans.name || !newTrans.amountRaw) return;
+                const amountVal = parseNum(newTrans.amountRaw);
+                if (amountVal <= 0) return;
+
                 const newItem = {
                     id: Date.now(),
                     name: newTrans.name,
-                    amount: parseFloat(newTrans.amount),
+                    amount: amountVal,
                     category: newTrans.category,
                     date: new Date().toISOString()
                 };
                 setData(prev => ({ ...prev, transactions: [newItem, ...prev.transactions] }));
-                setNewTrans({ name: '', amount: '', category: 'needs' });
+                setNewTrans({ name: '', amountRaw: '', category: 'needs' });
             };
 
             const removeTransaction = (id) => {
@@ -215,111 +390,29 @@
             };
 
             const resetAll = () => {
-                if(confirm("¿Estás seguro de borrar TODOS los datos y empezar de cero?")) {
+                if(confirm("¿Estás seguro?")) {
                     setData({ income: 0, percentages: { needs: 50, wants: 30, savings: 20 }, transactions: [] });
                     setShowConfig(true);
                 }
             };
 
-            // --- COMPONENTE MODAL CONFIGURACIÓN ---
-            const ConfigModal = () => (
-                <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50 p-4">
-                    <div className="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-xl p-6 shadow-2xl max-h-[95vh] overflow-y-auto custom-scrollbar">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-white flex items-center gap-2"><Settings className="text-indigo-400"/> Configuración</h2>
-                            {data.income > 0 && <button onClick={()=>setShowConfig(false)} className="text-slate-400 hover:text-white p-2">✕</button>}
-                        </div>
-                        
-                        <div className="space-y-6 mb-8">
-                            {/* Input Ingreso TEXTO LIBRE */}
-                            <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Ingreso Mensual Base</label>
-                                <div className="relative">
-                                    <span className="absolute left-4 top-4 text-slate-500 font-bold">$</span>
-                                    {/* INPUT TEXT: No interfiere con el teclado */}
-                                    <input 
-                                        type="text" 
-                                        inputMode="numeric"
-                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 pl-8 text-white font-mono font-bold text-xl focus:border-indigo-500 outline-none" 
-                                        value={tempConfig.incomeStr} 
-                                        onChange={(e) => handleTextChange('incomeStr', e.target.value)}
-                                        placeholder="0" 
-                                        autoComplete="off"
-                                    />
-                                </div>
-                                {/* Vista Previa */}
-                                <div className="mt-2 flex justify-end">
-                                    <span className="text-sm font-mono text-emerald-400 font-bold bg-slate-800/50 px-3 py-1 rounded-lg border border-slate-700">
-                                        Vista: {formatCOP(parseNum(tempConfig.incomeStr))}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Sliders Porcentajes */}
-                            <div className="p-4 bg-slate-800/40 rounded-xl border border-slate-700/50 space-y-5">
-                                <div className="flex justify-between items-center border-b border-slate-700 pb-2">
-                                    <p className="text-xs font-bold text-slate-300">Distribución (%)</p>
-                                    <span className={`text-sm font-mono font-bold ${isConfigValid ? "text-emerald-400" : "text-rose-400"}`}>
-                                        Suma: {totalPercentage.toFixed(2)}%
-                                    </span>
-                                </div>
-                                
-                                {[
-                                    { label: 'Fijos', field: 'pNeedsStr', color: 'accent-sky-500', text: 'text-sky-400' },
-                                    { label: 'Gustos', field: 'pWantsStr', color: 'accent-pink-500', text: 'text-pink-400' },
-                                    { label: 'Ahorro', field: 'pSavingsStr', color: 'accent-emerald-500', text: 'text-emerald-400' }
-                                ].map((item) => (
-                                    <div key={item.field} className="space-y-2">
-                                        <div className="flex justify-between items-center gap-4">
-                                            <span className={`text-sm font-medium ${item.text} w-20`}>{item.label}</span>
-                                            {/* Input Manual TEXTO para decimales */}
-                                            <div className="relative w-24">
-                                                <input 
-                                                    type="number"
-                                                    step="any" 
-                                                    className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1 text-right text-white font-mono text-sm focus:border-indigo-500 outline-none"
-                                                    value={tempConfig[item.field]}
-                                                    onChange={(e) => handleTextChange(item.field, e.target.value)}
-                                                />
-                                                <span className="absolute right-6 top-1 text-slate-500 text-xs pointer-events-none">%</span>
-                                            </div>
-                                        </div>
-                                        <input 
-                                            type="range" min="0" max="100" step="0.1" 
-                                            className={`w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer ${item.color}`}
-                                            value={parseNum(tempConfig[item.field])} 
-                                            onChange={(e) => handleTextChange(item.field, e.target.value)} 
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col gap-3">
-                            <button onClick={saveConfig} disabled={!isConfigValid || parseNum(tempConfig.incomeStr) <= 0} 
-                                className={`w-full py-3.5 rounded-lg font-bold text-sm flex justify-center items-center gap-2 transition-all ${(!isConfigValid || parseNum(tempConfig.incomeStr) <= 0) ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'}`}>
-                                <Save className="w-4 h-4"/> Guardar Configuración
-                            </button>
-                            
-                            {!isConfigValid && <p className="text-center text-xs text-rose-400 bg-rose-500/10 p-2 rounded">La suma debe ser 100%</p>}
-                            
-                            {data.income > 0 && 
-                                <button onClick={resetAll} className="mt-2 text-xs text-rose-500/50 hover:text-rose-500 underline text-center w-full py-2">
-                                    Reiniciar de fábrica
-                                </button>
-                            }
-                        </div>
-                    </div>
-                </div>
-            );
-
             if (data.income === 0 && !showConfig) setShowConfig(true);
 
             return (
                 <div className="min-h-screen bg-slate-950 pb-10">
-                    {(showConfig || data.income === 0) && <ConfigModal />}
+                    {(showConfig || data.income === 0) && (
+                        <ConfigModal 
+                            tempConfig={tempConfig}
+                            setTempConfig={setTempConfig}
+                            onSave={saveConfig}
+                            onClose={() => setShowConfig(false)}
+                            canClose={data.income > 0}
+                            totalPercentage={totalPercentage}
+                            isConfigValid={isConfigValid}
+                            resetAll={resetAll}
+                        />
+                    )}
 
-                    {/* Navbar */}
                     <div className="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-30">
                         <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
                             <h1 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
@@ -333,18 +426,14 @@
                                 </div>
                                 <div className="h-8 w-px bg-slate-800 mx-1 hidden sm:block"></div>
                                 <button onClick={()=>setShowConfig(true)} className="flex items-center gap-2 px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition-colors border border-slate-700 text-xs font-bold">
-                                    <Settings className="w-4 h-4"/> <span className="hidden xs:inline">Ajustar</span>
+                                    <SettingsIcon className="w-4 h-4"/> <span className="hidden xs:inline">Ajustar</span>
                                 </button>
                             </div>
                         </div>
                     </div>
 
                     <main className="max-w-5xl mx-auto px-4 mt-6 grid grid-cols-1 md:grid-cols-12 gap-6">
-                        
-                        {/* LEFT COLUMN */}
                         <div className="md:col-span-7 space-y-6">
-                            
-                            {/* Cards */}
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 {Object.keys(THEME).map(key => {
                                     const t = THEME[key];
@@ -366,11 +455,9 @@
                                                     <span className="text-xs font-mono text-slate-300 font-bold">{formatCOP(limit)}</span>
                                                 </div>
                                             </div>
-                                            
                                             <div className="h-2 bg-slate-900/50 rounded-full overflow-hidden mb-3 relative z-10">
                                                 <div className={`h-full transition-all duration-1000 ${isOver ? 'bg-rose-500' : t.bar}`} style={{width: `${Math.min(pct, 100)}%`}}></div>
                                             </div>
-
                                             <div className="flex justify-between items-end relative z-10">
                                                 <div>
                                                     <span className="text-[10px] text-slate-500 uppercase block font-bold">Gastado</span>
@@ -388,7 +475,6 @@
                                 })}
                             </div>
 
-                            {/* Chart */}
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row gap-6 items-center shadow-lg">
                                 <div className="w-full h-48 sm:w-1/2">
                                     <ResponsiveContainer width="100%" height="100%">
@@ -428,10 +514,7 @@
                             </div>
                         </div>
 
-                        {/* RIGHT COLUMN */}
                         <div className="md:col-span-5 space-y-6">
-                            
-                            {/* Input Form */}
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
                                 <h3 className="text-sm font-bold text-white mb-4 relative z-10">Registrar Gasto</h3>
@@ -442,11 +525,22 @@
                                     />
                                     <div className="relative">
                                         <span className="absolute left-3 top-3 text-slate-500 text-sm">$</span>
-                                        <input type="number" placeholder="0" 
+                                        <input 
+                                            type="number" 
+                                            inputMode="decimal"
+                                            placeholder="0" 
                                             className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 pl-7 text-sm text-white font-mono focus:border-indigo-500 outline-none placeholder-slate-600"
-                                            value={newTrans.amount} onChange={e => setNewTrans({...newTrans, amount: e.target.value})}
+                                            value={newTrans.amountRaw} 
+                                            onChange={e => setNewTrans({...newTrans, amountRaw: e.target.value})}
                                         />
                                     </div>
+                                    {newTrans.amountRaw && (
+                                        <div className="flex justify-end -mt-2">
+                                             <span className="text-[10px] text-emerald-400 font-mono bg-slate-900/50 px-2 rounded">
+                                                {formatCOP(parseNum(newTrans.amountRaw))}
+                                             </span>
+                                        </div>
+                                    )}
                                     <div className="grid grid-cols-3 gap-2">
                                         {[
                                             {id:'needs', l:'Fijos', icon:'🏠', c:'text-sky-400 border-sky-500/30 bg-sky-500/10 ring-sky-500/50'},
@@ -465,7 +559,6 @@
                                 </form>
                             </div>
 
-                            {/* History */}
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex flex-col h-[400px] shadow-lg">
                                 <div className="p-4 border-b border-slate-800 bg-slate-900/50 backdrop-blur flex justify-between items-center">
                                     <h3 className="text-sm font-bold text-slate-300">Movimientos Mes</h3>
@@ -498,7 +591,6 @@
                                     )}
                                 </div>
                             </div>
-
                         </div>
                     </main>
                 </div>
