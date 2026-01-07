@@ -32,6 +32,10 @@
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: currentColor; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(0,0,0,0.2); }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #e2e8f0; border-radius: 2px; }
         .dark input[type=range]::-webkit-slider-runnable-track { background: #334155; }
+
+        /* Checkbox Custom */
+        .checkbox-wrapper input:checked + div { background-color: #4f46e5; border-color: #4f46e5; }
+        .checkbox-wrapper input:checked + div svg { display: block; }
     </style>
 </head>
 <body class="bg-gray-100 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300 w-full overflow-x-hidden flex justify-center min-h-screen">
@@ -114,9 +118,20 @@
                             <option value="extra">Extra (+)</option>
                         </select>
                     </div>
-                    <div class="flex gap-2">
-                        <input id="trans-amount" type="text" inputmode="numeric" class="flex-1 bg-gray-100 dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-sm font-mono outline-none dark:text-white transition-colors" placeholder="$ 0" oninput="formatInput(this)">
-                        <button onclick="addTransaction()" class="bg-indigo-600 text-white px-4 rounded-lg font-bold shadow-lg hover:bg-indigo-700 active:scale-95 transition-transform">+</button>
+                    
+                    <div class="flex items-center gap-2 h-10">
+                         <input id="trans-amount" type="text" inputmode="numeric" class="flex-1 h-full bg-gray-100 dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-sm font-mono outline-none dark:text-white transition-colors" placeholder="$ 0" oninput="formatInput(this)">
+                         
+                         <!-- Opción 4x1000 -->
+                         <label class="checkbox-wrapper flex items-center gap-2 cursor-pointer bg-gray-50 dark:bg-slate-800 px-3 h-full rounded-lg border border-gray-100 dark:border-slate-700 select-none">
+                             <input type="checkbox" id="trans-tax" class="hidden">
+                             <div class="w-4 h-4 border-2 border-gray-400 rounded flex items-center justify-center transition-colors">
+                                 <svg class="w-3 h-3 text-white hidden pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                             </div>
+                             <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 whitespace-nowrap">4x1000</span>
+                         </label>
+
+                        <button onclick="addTransaction()" class="bg-indigo-600 text-white h-full px-4 rounded-lg font-bold shadow-lg hover:bg-indigo-700 active:scale-95 transition-transform flex items-center justify-center text-xl">+</button>
                     </div>
                 </div>
             </div>
@@ -126,7 +141,10 @@
                 <div class="p-4 border-b border-gray-200 dark:border-slate-800 flex flex-col gap-2">
                     <div class="flex justify-between items-center">
                         <span class="font-bold text-xs text-gray-500 dark:text-slate-400">Historial del Mes</span>
-                        <span id="history-total-display" class="font-mono text-xs font-bold text-gray-800 dark:text-white"></span>
+                        <div class="text-right">
+                             <span id="history-total-display" class="font-mono text-xs font-bold text-gray-800 dark:text-white block"></span>
+                             <span id="tax-total-display" class="font-mono text-[9px] font-bold text-gray-400 block mt-0.5"></span>
+                        </div>
                     </div>
                     <div id="filters-container" class="flex gap-2 overflow-x-auto no-scrollbar pb-1"></div>
                 </div>
@@ -151,7 +169,7 @@
                 
                 <div class="overflow-y-auto custom-scrollbar flex-1 space-y-5 px-1">
                     <div>
-                        <label class="text-xs font-bold text-gray-500 uppercase">Ingreso Mensual</label>
+                        <label class="text-xs font-bold text-gray-500 uppercase">Ingreso Mensual (Este Mes)</label>
                         <input id="conf-income" type="text" inputmode="numeric" class="w-full bg-gray-100 dark:bg-slate-800 rounded-lg p-3 text-lg font-bold outline-none dark:text-white mt-1" placeholder="0" oninput="handleConfigIncome(this)">
                     </div>
 
@@ -166,7 +184,6 @@
 
                 <div class="shrink-0 space-y-3 pt-4 border-t border-gray-200 dark:border-slate-800 mt-2">
                     <button onclick="saveConfig()" id="btn-save-config" class="w-full py-3 rounded-xl font-bold text-sm bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-colors">Guardar Cambios</button>
-                    
                     <div class="grid grid-cols-2 gap-2">
                         <button onclick="exportData()" class="py-2 bg-gray-100 dark:bg-slate-800 rounded-lg text-xs font-bold text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700">⬇️ Backup</button>
                         <label class="flex justify-center items-center gap-2 py-2 bg-gray-100 dark:bg-slate-800 rounded-lg text-xs font-bold text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 cursor-pointer">
@@ -174,10 +191,10 @@
                         </label>
                     </div>
 
-                    <!-- 3 NIVELES DE BORRADO -->
+                    <!-- BOTONES BORRAR -->
                     <button onclick="clearMonthTransactions()" class="w-full py-2 bg-yellow-50 dark:bg-yellow-900/10 text-yellow-600 dark:text-yellow-400 rounded-lg text-xs font-bold border border-yellow-200 dark:border-yellow-800/30">🧹 Limpiar Movimientos (Este Mes)</button>
                     
-                    <button onclick="resetMonth()" class="w-full py-2 bg-orange-50 dark:bg-orange-900/10 text-orange-600 dark:text-orange-400 rounded-lg text-xs font-bold border border-orange-200 dark:border-orange-800/30">🗑️ Reiniciar Mes (Config + Datos)</button>
+                    <button onclick="resetMonth()" class="w-full py-2 bg-orange-50 dark:bg-orange-900/10 text-orange-600 dark:text-orange-400 rounded-lg text-xs font-bold border border-orange-200 dark:border-orange-800/30">🗑️ Borrar Solo Este Mes</button>
                     
                     <button onclick="resetAll()" class="w-full text-xs text-rose-500 hover:underline text-center py-2">🔥 Reiniciar de Fábrica</button>
                 </div>
@@ -196,23 +213,18 @@
 
     <!-- LOGICA JS -->
     <script>
-        const DB_KEY = 'finanzas_v71_auto_fix';
-        
         // DATOS INICIALES EN BLANCO
+        const DB_KEY = 'finanzas_v75_final_perfect';
         const INITIAL_DATA = {
-            monthlyBudgets: {}, 
+            monthlyBudgets: {},
+            defaultConfig: { income: 0, mNeeds: 0, mWants: 0, mSavings: 0, pNeeds: 50, pWants: 30, pSavings: 20 },
             transactions: [],
             concepts: [],
             isDark: false
         };
 
-        const CATEGORY_ICONS = {
-            needs: '🏠',
-            wants: '🎉',
-            savings: '🐷',
-            extra: '💎'
-        };
-
+        const CATEGORY_ICONS = { needs: '🏠', wants: '🎉', savings: '🐷', extra: '💎' };
+        
         let state = INITIAL_DATA;
         let currentDate = new Date();
         let currentFilter = 'all';
@@ -280,8 +292,11 @@
 
             let spent = { needs: 0, wants: 0, savings: 0, extra: 0 };
             let totalSpent = 0, totalExtra = 0;
+            let totalTax = 0;
 
             monthTrans.forEach(t => {
+                if (t.tax) totalTax += t.tax;
+                
                 if(t.category === 'extra') totalExtra += t.amount;
                 else {
                     spent[t.category] = (spent[t.category] || 0) + t.amount;
@@ -296,6 +311,7 @@
             document.getElementById('income-base').innerText = `$ ${formatCOP(budget.income)}`;
             document.getElementById('income-extra').innerText = `+ $ ${formatCOP(totalExtra)}`;
             document.getElementById('total-spent').innerText = `- $ ${formatCOP(totalSpent)}`;
+            document.getElementById('tax-total-display').innerText = totalTax > 0 ? `4x1000 del mes: $ ${formatCOP(totalTax)}` : '';
 
             const cardsCont = document.getElementById('cards-container');
             cardsCont.innerHTML = '';
@@ -401,7 +417,13 @@
                 <div class="flex justify-between items-center p-3 border-b border-gray-100 dark:border-slate-800 fade-in">
                     <div class="flex items-center gap-3">
                         <div class="text-lg">${getIcon(t.name, t.category)}</div>
-                        <div><p class="text-xs font-bold text-gray-800 dark:text-white">${t.name}</p><p class="text-[9px] text-gray-400">${new Date(t.date).getDate()}/${new Date(t.date).getMonth()+1}</p></div>
+                        <div>
+                            <p class="text-xs font-bold text-gray-800 dark:text-white">${t.name}</p>
+                            <p class="text-[9px] text-gray-400">
+                                ${new Date(t.date).getDate()}/${new Date(t.date).getMonth()+1}
+                                ${t.tax ? `<span class="text-indigo-500 font-bold ml-1">(+4x1000)</span>` : ''}
+                            </p>
+                        </div>
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="font-mono text-xs font-bold ${t.category==='extra'?'text-purple-500':'text-gray-600 dark:text-slate-300'}">
@@ -420,7 +442,7 @@
                 <div class="space-y-1">
                     <div class="flex justify-between items-end"><span class="text-xs font-bold text-gray-700 dark:text-slate-200">${i.l}</span><button onclick="autoFill('p${i.k}')" class="text-[10px] text-gray-500 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-gray-200 dark:border-slate-700">⚡ Auto</button></div>
                     <div class="grid grid-cols-2 gap-2">
-                        <div class="relative"><input id="conf-p${i.k}" type="number" class="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded px-2 py-2 text-right text-sm outline-none dark:text-white" oninput="updateFromPercent('${i.k}')" placeholder="0"><span class="absolute right-7 top-2 text-xs text-gray-400 pointer-events-none">%</span></div>
+                        <div class="relative"><span class="absolute left-2 top-2 text-xs text-gray-400 pointer-events-none">%</span><input id="conf-p${i.k}" type="number" class="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded px-2 pl-6 py-2 text-right text-sm outline-none dark:text-white" oninput="updateFromPercent('${i.k}')" placeholder="0"></div>
                         <div class="relative"><span class="absolute left-2 top-2 text-xs text-gray-400 pointer-events-none">$</span><input id="conf-m${i.k}" type="text" inputmode="numeric" class="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded px-2 py-2 pl-5 text-right text-sm outline-none dark:text-white font-mono" oninput="updateFromMoney('${i.k}', this)" placeholder="0"></div>
                     </div>
                 </div>
@@ -451,8 +473,8 @@
             const m = parseClean(el.value);
             const inc = parseClean(document.getElementById('conf-income').value);
             if (inc > 0) {
-                const p = ((m / inc) * 100).toFixed(1);
-                document.getElementById(`conf-p${key}`).value = p;
+                const p = ((m / inc) * 100).toFixed(2);
+                document.getElementById(`conf-p${key}`).value = parseFloat(p);
             }
             updateTotalP();
         }
@@ -469,16 +491,25 @@
 
         function autoFill(targetP) {
             const keys = ['pNeeds', 'pWants', 'pSavings'];
+            // Eliminar la 'p' para obtener la clave del input de dinero si fuera necesario
+            // Pero aquí solo sumamos porcentajes
             let sumOthers = 0;
+            
             keys.forEach(k => {
+                // targetP es 'pNeeds', k es 'pNeeds'
                 if (k !== targetP) {
-                    sumOthers += parseFloat(document.getElementById(`conf-${k}`).value) || 0;
+                    const inputId = `conf-${k}`; // id="conf-pNeeds"
+                    const val = parseFloat(document.getElementById(inputId).value) || 0;
+                    sumOthers += val;
                 }
             });
+            
             const rem = 100 - sumOthers;
             if (rem >= 0) {
-                document.getElementById(`conf-${targetP}`).value = rem.toFixed(1);
-                // Extraer el nombre de la key (ej: pNeeds -> Needs) para actualizar el dinero
+                // Actualizar %
+                document.getElementById(`conf-${targetP}`).value = parseFloat(rem.toFixed(2));
+                // Actualizar $ basado en el nuevo %
+                // targetP es 'pNeeds' -> key 'Needs'
                 updateFromPercent(targetP.substring(1));
             } else {
                 alert(`La suma de los otros (${sumOthers}%) ya supera el 100%`);
@@ -489,7 +520,7 @@
              const sum = ['Needs', 'Wants', 'Savings'].reduce((acc, k) => acc + (parseFloat(document.getElementById(`conf-p${k}`).value)||0), 0);
              const lbl = document.getElementById('dist-total-lbl');
              lbl.innerText = `Distribución (${sum.toFixed(1)}%)`;
-             lbl.className = Math.abs(sum - 100) < 0.5 ? "text-emerald-500 font-bold flex justify-between border-b pb-1" : "text-rose-500 font-bold flex justify-between border-b pb-1";
+             lbl.className = Math.abs(sum - 100) < 0.1 ? "text-emerald-500 font-bold flex justify-between border-b pb-1" : "text-rose-500 font-bold flex justify-between border-b pb-1";
         }
 
         function changeMonth(offset) { currentDate.setMonth(currentDate.getMonth() + offset); render(); }
@@ -515,7 +546,7 @@
         
         function saveConfig() {
             const inc = parseClean(document.getElementById('conf-income').value);
-            // Permitimos 0
+            // Permitimos guardar aunque sea 0, para resetear
             
             const key = getMonthKey(currentDate);
             const newBudget = {
@@ -578,20 +609,37 @@
 
         function addTransaction() {
             const name = document.getElementById('trans-name').value;
-            const amt = parseClean(document.getElementById('trans-amount').value);
+            let amt = parseClean(document.getElementById('trans-amount').value);
             const cat = document.getElementById('trans-cat').value;
+            const hasTax = document.getElementById('trans-tax').checked;
+
             if(!name || amt <= 0) return;
             if(!state.concepts.includes(name)) state.concepts.push(name);
             
+            let taxValue = 0;
+            if (cat !== 'extra' && hasTax) {
+                taxValue = Math.round(amt * 0.004);
+                amt += taxValue;
+            }
+
             let transDate = new Date();
             // Asegurar que se guarde en el mes seleccionado
             if (transDate.getMonth() !== currentDate.getMonth() || transDate.getFullYear() !== currentDate.getFullYear()) {
                 transDate = new Date(currentDate); 
             }
 
-            state.transactions.unshift({ id: Date.now(), date: transDate.toISOString(), name, amount: amt, category: cat });
+            state.transactions.unshift({ 
+                id: Date.now(), 
+                date: transDate.toISOString(), 
+                name, 
+                amount: amt, 
+                category: cat,
+                tax: taxValue 
+            });
+
             document.getElementById('trans-name').value = '';
             document.getElementById('trans-amount').value = '';
+            document.getElementById('trans-tax').checked = false;
             saveState();
         }
 
@@ -610,20 +658,26 @@
             doc.setFontSize(16); doc.text("Extracto Financiero", 14, 20);
             doc.setFontSize(10); doc.text(`Juan Miguel Rios Redondo - ${new Date().toLocaleDateString()}`, 14, 26);
             
-            const rows = state.transactions.filter(t => { const d = new Date(t.date); return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear(); }).map(t => [new Date(t.date).toLocaleDateString(), t.name, t.category, `$ ${formatCOP(t.amount)}`]);
+            const rows = state.transactions.filter(t => { const d = new Date(t.date); return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear(); }).map(t => [new Date(t.date).toLocaleDateString(), t.name + (t.tax ? " (+4x1000)" : ""), t.category, `$ ${formatCOP(t.amount)}`]);
             doc.autoTable({ startY: 35, head: [['Fecha', 'Concepto', 'Tipo', 'Monto']], body: rows });
             const finalY = doc.lastAutoTable.finalY + 10;
             
-            let spent = 0; let extra = 0;
-            state.transactions.filter(t => { const d = new Date(t.date); return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear(); }).forEach(t => { if(t.category === 'extra') extra += t.amount; else spent += t.amount; });
+            let spent = 0; let extra = 0; let totalTax = 0;
+            state.transactions.filter(t => { const d = new Date(t.date); return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear(); }).forEach(t => { 
+                if(t.category === 'extra') extra += t.amount; 
+                else spent += t.amount;
+                if(t.tax) totalTax += t.tax;
+            });
             const balance = (budget.income + extra) - spent;
 
             doc.text(`Resumen Mensual:`, 14, finalY + 5);
             doc.text(`Base: $ ${formatCOP(budget.income)}`, 14, finalY + 12);
             doc.text(`Extra: + $ ${formatCOP(extra)}`, 14, finalY + 18);
             doc.text(`Gastado: - $ ${formatCOP(spent)}`, 14, finalY + 24);
+            if (totalTax > 0) doc.text(`(Incluye 4x1000: $ ${formatCOP(totalTax)})`, 14, finalY + 30);
+            
             doc.setFont(undefined, 'bold');
-            doc.text(`Disponible Final: $ ${formatCOP(balance)}`, 14, finalY + 32);
+            doc.text(`Disponible Final: $ ${formatCOP(balance)}`, 14, finalY + 40);
 
             doc.save('finanzas.pdf');
         }
@@ -654,3 +708,5 @@
     </script>
 </body>
 </html>
+
+
