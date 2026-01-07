@@ -167,18 +167,19 @@
                 <div class="shrink-0 space-y-3 pt-4 border-t border-gray-200 dark:border-slate-800 mt-2">
                     <button onclick="saveConfig()" id="btn-save-config" class="w-full py-3 rounded-xl font-bold text-sm bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-colors">Guardar Cambios</button>
                     
-                    <!-- Botones de gestión extra -->
                     <div class="grid grid-cols-2 gap-2">
                         <button onclick="exportData()" class="py-2 bg-gray-100 dark:bg-slate-800 rounded-lg text-xs font-bold text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700">⬇️ Backup</button>
                         <label class="flex justify-center items-center gap-2 py-2 bg-gray-100 dark:bg-slate-800 rounded-lg text-xs font-bold text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 cursor-pointer">
                             ⬆️ Restaurar <input type="file" onchange="importData(this)" class="hidden" accept=".json">
                         </label>
                     </div>
+
+                    <!-- 3 NIVELES DE BORRADO -->
+                    <button onclick="clearMonthTransactions()" class="w-full py-2 bg-yellow-50 dark:bg-yellow-900/10 text-yellow-600 dark:text-yellow-400 rounded-lg text-xs font-bold border border-yellow-200 dark:border-yellow-800/30">🧹 Limpiar Movimientos (Este Mes)</button>
                     
-                    <!-- BOTÓN BORRAR MES ACTUAL -->
-                    <button onclick="resetMonth()" class="w-full py-2 bg-orange-50 dark:bg-orange-900/10 text-orange-600 dark:text-orange-400 rounded-lg text-xs font-bold border border-orange-200 dark:border-orange-800/30">🗑️ Borrar Solo Este Mes</button>
+                    <button onclick="resetMonth()" class="w-full py-2 bg-orange-50 dark:bg-orange-900/10 text-orange-600 dark:text-orange-400 rounded-lg text-xs font-bold border border-orange-200 dark:border-orange-800/30">🗑️ Reiniciar Mes (Config + Datos)</button>
                     
-                    <button onclick="resetAll()" class="w-full text-xs text-rose-500 hover:underline text-center py-2">🔥 Reiniciar App Completa</button>
+                    <button onclick="resetAll()" class="w-full text-xs text-rose-500 hover:underline text-center py-2">🔥 Reiniciar de Fábrica</button>
                 </div>
             </div>
         </div>
@@ -195,11 +196,11 @@
 
     <!-- LOGICA JS -->
     <script>
-        // --- DATOS INICIALES LIMPIOS ---
-        const DB_KEY = 'finanzas_v69_month_reset';
+        const DB_KEY = 'finanzas_v71_auto_fix';
+        
+        // DATOS INICIALES EN BLANCO
         const INITIAL_DATA = {
-            monthlyBudgets: {},
-            defaultConfig: { income: 0, mNeeds: 0, mWants: 0, mSavings: 0, pNeeds: 50, pWants: 30, pSavings: 20 },
+            monthlyBudgets: {}, 
             transactions: [],
             concepts: [],
             isDark: false
@@ -233,7 +234,7 @@
             if (state.monthlyBudgets && state.monthlyBudgets[key]) {
                 return state.monthlyBudgets[key];
             }
-            return state.defaultConfig;
+            return { income: 0, mNeeds: 0, mWants: 0, mSavings: 0, pNeeds: 50, pWants: 30, pSavings: 20 };
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -244,6 +245,7 @@
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
+                    if (!parsed.monthlyBudgets) parsed.monthlyBudgets = {};
                     state = { ...INITIAL_DATA, ...parsed };
                 } catch(e) { console.error("Error cargando datos", e); }
             } else {
@@ -256,7 +258,6 @@
             renderConfigRows();
             renderFilters();
             
-            // Si el mes actual está en blanco, abrir configuración
             const budget = getMonthlyBudget(currentDate);
             if (budget.income === 0 && state.transactions.length === 0) openConfig();
             
@@ -471,12 +472,13 @@
             let sumOthers = 0;
             keys.forEach(k => {
                 if (k !== targetP) {
-                    sumOthers += parseFloat(document.getElementById(`conf-${k.substring(1)}`).value) || 0;
+                    sumOthers += parseFloat(document.getElementById(`conf-${k}`).value) || 0;
                 }
             });
             const rem = 100 - sumOthers;
             if (rem >= 0) {
                 document.getElementById(`conf-${targetP}`).value = rem.toFixed(1);
+                // Extraer el nombre de la key (ej: pNeeds -> Needs) para actualizar el dinero
                 updateFromPercent(targetP.substring(1));
             } else {
                 alert(`La suma de los otros (${sumOthers}%) ya supera el 100%`);
@@ -497,7 +499,6 @@
             document.getElementById('modal-config').classList.remove('hidden');
             const budget = getMonthlyBudget(currentDate);
             
-            // Mostrar mes en el título
             const monthName = document.getElementById('current-month-display').innerText;
             document.getElementById('config-month-label').innerText = `(${monthName})`;
 
@@ -514,7 +515,7 @@
         
         function saveConfig() {
             const inc = parseClean(document.getElementById('conf-income').value);
-            if(inc <= 0) return alert("Ingreso inválido");
+            // Permitimos 0
             
             const key = getMonthKey(currentDate);
             const newBudget = {
@@ -529,40 +530,49 @@
             
             if(!state.monthlyBudgets) state.monthlyBudgets = {};
             state.monthlyBudgets[key] = newBudget;
-            
-            // Actualizar default para meses futuros
-            state.defaultConfig = newBudget;
 
             saveState(); 
             closeConfig();
         }
 
-        function resetMonth() {
-            const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-            const monthName = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
-            
-            if(confirm(`¿Estás seguro de BORRAR TODOS los datos de ${monthName}? Esto eliminará el ingreso base y los movimientos de este mes.`)) {
-                // 1. Borrar transacciones del mes
+        // --- BORRAR SOLO MOVIMIENTOS DEL MES ---
+        function clearMonthTransactions() {
+            const currentKey = getMonthKey(currentDate);
+            const monthName = document.getElementById('current-month-display').innerText;
+
+            if(confirm(`¿Estás seguro de limpiar la LISTA DE GASTOS de ${monthName}? El ingreso base se mantendrá.`)) {
+                // Filtrar para mantener todo lo que NO sea de este mes
                 state.transactions = state.transactions.filter(t => {
                     const d = new Date(t.date);
-                    return d.getMonth() !== currentDate.getMonth() || d.getFullYear() !== currentDate.getFullYear();
+                    return getMonthKey(d) !== currentKey;
+                });
+                saveState();
+                render();
+            }
+        }
+
+        // --- BORRAR MES COMPLETO (Config + Movimientos) ---
+        function resetMonth() {
+            const currentKey = getMonthKey(currentDate);
+            const monthName = document.getElementById('current-month-display').innerText;
+            
+            if(confirm(`¿Borrar TODO (Ingreso + Gastos) de ${monthName}?`)) {
+                // Borrar transacciones
+                state.transactions = state.transactions.filter(t => {
+                    const d = new Date(t.date);
+                    return getMonthKey(d) !== currentKey;
                 });
 
-                // 2. Resetear presupuesto del mes
-                const key = getMonthKey(currentDate);
-                if(!state.monthlyBudgets) state.monthlyBudgets = {};
-                
-                state.monthlyBudgets[key] = {
-                    income: 0,
-                    mNeeds: 0, mWants: 0, mSavings: 0,
-                    pNeeds: 50, pWants: 30, pSavings: 20
-                };
+                // Borrar presupuesto
+                if(state.monthlyBudgets && state.monthlyBudgets[currentKey]) {
+                    delete state.monthlyBudgets[currentKey];
+                }
 
                 saveState();
                 closeConfig();
                 render();
                 alert(`Mes de ${monthName} reiniciado.`);
-                openConfig(); // Abrir config para que usuario empiece
+                openConfig(); 
             }
         }
 
@@ -574,7 +584,7 @@
             if(!state.concepts.includes(name)) state.concepts.push(name);
             
             let transDate = new Date();
-            // Asegurar que se guarde en el mes seleccionado si es diferente al actual
+            // Asegurar que se guarde en el mes seleccionado
             if (transDate.getMonth() !== currentDate.getMonth() || transDate.getFullYear() !== currentDate.getFullYear()) {
                 transDate = new Date(currentDate); 
             }
@@ -604,7 +614,6 @@
             doc.autoTable({ startY: 35, head: [['Fecha', 'Concepto', 'Tipo', 'Monto']], body: rows });
             const finalY = doc.lastAutoTable.finalY + 10;
             
-            // Calculos Mes
             let spent = 0; let extra = 0;
             state.transactions.filter(t => { const d = new Date(t.date); return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear(); }).forEach(t => { if(t.category === 'extra') extra += t.amount; else spent += t.amount; });
             const balance = (budget.income + extra) - spent;
@@ -634,12 +643,12 @@
         function resetAll() { if(confirm("¿Borrar todo?")) { localStorage.removeItem(DB_KEY); location.reload(); } }
         
         function getIcon(name, cat) {
-            // Priority 1: Smart Match
+            // Smart Match
             const lowerName = (name || '').toLowerCase();
             const map = { 'netflix': '🎬', 'spotify': '🎵', 'mercado': '🛒', 'comida': '🍔', 'uber': '🚕', 'transporte': '🚌', 'gasolina': '⛽', 'cine': '🍿', 'arriendo': '🏠', 'luz': '💡', 'agua': '💧', 'internet': '🌐', 'celular': '📱', 'gym': '💪', 'salud': '💊', 'regalo': '🎁', 'viaje': '✈️', 'ropa': '👕', 'cafe': '☕', 'cerveza': '🍺', 'ahorro': '🐷', 'banco': '🏦', 'nomina': '💰', 'sueldo': '💰', 'ara': '🛒', 'isimo': '🛒', 'olimpica': '🛒', 'exito': '🛒', 'd1': '🛒' };
             for (const key in map) if (lowerName.includes(key)) return map[key];
             
-            // Priority 2: Category Fallback (Consistent with Cards)
+            // Category Fallback
             return CATEGORY_ICONS[cat] || '❓';
         }
     </script>
