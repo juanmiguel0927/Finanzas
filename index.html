@@ -20,9 +20,13 @@
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
         .fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
         #loader { position: fixed; inset: 0; background: #0f172a; color: white; display: flex; justify-content: center; align-items: center; z-index: 50; transition: opacity 0.5s; }
+        
+        /* Inputs */
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=range] { -webkit-appearance: none; background: transparent; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: currentColor; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(0,0,0,0.2); }
@@ -32,7 +36,7 @@
 </head>
 <body class="bg-gray-100 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300 w-full overflow-x-hidden flex justify-center min-h-screen">
 
-    <div id="loader"><h2 class="text-xl font-bold animate-pulse">Cargando Finanzas...</h2></div>
+    <div id="loader"><h2 class="text-xl font-bold animate-pulse">Iniciando...</h2></div>
 
     <div id="app" class="w-full max-w-md bg-white dark:bg-slate-950 shadow-2xl relative border-x border-gray-200 dark:border-slate-800 min-h-screen flex flex-col">
         
@@ -51,10 +55,13 @@
         <!-- MAIN -->
         <main class="flex-1 px-4 mt-6 flex flex-col gap-5 pb-20">
             
-            <!-- Selector Mes -->
+            <!-- Selector Mes con Botón HOY -->
             <div class="flex justify-between items-center bg-white dark:bg-slate-900 p-2 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800">
                 <button onclick="changeMonth(-1)" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg text-gray-500 font-bold">&lt;</button>
-                <span id="current-month-display" class="font-bold text-gray-800 dark:text-white capitalize">Cargando...</span>
+                <div class="flex items-center gap-2">
+                    <span id="current-month-display" class="font-bold text-gray-800 dark:text-white capitalize">Cargando...</span>
+                    <button onclick="goToCurrentMonth()" class="text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 px-2 py-1 rounded-full font-bold" title="Ir al mes actual">Hoy</button>
+                </div>
                 <button onclick="changeMonth(1)" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg text-gray-500 font-bold">&gt;</button>
             </div>
 
@@ -85,6 +92,7 @@
                 <div id="chart-legend" class="flex gap-4 mt-4 text-[10px] text-gray-500 dark:text-slate-400 font-medium"></div>
             </div>
 
+            <!-- Botón PDF -->
             <button onclick="generatePDF()" class="w-full py-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-indigo-600 dark:text-indigo-400 font-bold rounded-xl shadow-sm text-xs hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
                 📄 Descargar Extracto PDF
             </button>
@@ -134,10 +142,7 @@
         <div id="modal-config" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-5 border border-gray-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
                 <div class="flex justify-between items-center mb-4 shrink-0">
-                    <div>
-                        <h2 class="text-lg font-bold text-gray-800 dark:text-white">Configuración</h2>
-                        <p id="config-month-label" class="text-[10px] text-indigo-500 font-bold uppercase"></p>
-                    </div>
+                    <h2 class="text-lg font-bold text-gray-800 dark:text-white">Configuración</h2>
                     <button onclick="closeConfig()" class="text-gray-400 text-xl">✕</button>
                 </div>
                 
@@ -157,7 +162,7 @@
                 </div>
 
                 <div class="shrink-0 space-y-3 pt-4 border-t border-gray-200 dark:border-slate-800 mt-2">
-                    <button onclick="saveConfig()" id="btn-save-config" class="w-full py-3 rounded-xl font-bold text-sm bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-colors">Guardar para este Mes</button>
+                    <button onclick="saveConfig()" id="btn-save-config" class="w-full py-3 rounded-xl font-bold text-sm bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-colors">Guardar</button>
                     <div class="grid grid-cols-2 gap-2">
                         <button onclick="exportData()" class="py-2 bg-gray-100 dark:bg-slate-800 rounded-lg text-xs font-bold text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700">⬇️ Backup</button>
                         <label class="flex justify-center items-center gap-2 py-2 bg-gray-100 dark:bg-slate-800 rounded-lg text-xs font-bold text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 cursor-pointer">
@@ -172,27 +177,38 @@
         <!-- MODAL CONCEPTOS -->
         <div id="modal-concepts" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-5 border border-gray-200 dark:border-slate-800">
-                <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-gray-800 dark:text-white">Conceptos</h3><button onclick="toggleConcepts()" class="text-gray-400">✕</button></div>
+                <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-gray-800 dark:text-white">Conceptos</h3><button onclick="closeConcepts()" class="text-gray-400">✕</button></div>
                 <div class="flex gap-2 mb-4"><input id="new-concept-input" class="flex-1 bg-gray-100 dark:bg-slate-800 rounded px-3 py-2 text-sm outline-none dark:text-white" placeholder="Nuevo..."><button onclick="addConcept()" class="bg-indigo-600 text-white rounded px-3 font-bold">+</button></div>
                 <div id="concepts-list-ui" class="max-h-60 overflow-y-auto custom-scrollbar flex flex-col gap-2"></div>
             </div>
         </div>
     </div>
 
+    <!-- LOGICA JS -->
     <script>
-        // --- ESTADO ---
-        const DB_KEY = 'finanzas_v51_monthly';
-        let state = {
-            budgets: {}, // { "2024-0": { income: 0, pNeeds: 50... } }
-            latestConfig: { income: 0, pNeeds: 50, pWants: 30, pSavings: 20, mNeeds: 0, mWants: 0, mSavings: 0 },
+        // --- DATOS INICIALES EN BLANCO ---
+        const DB_KEY = 'finanzas_v64_clean';
+        const INITIAL_DATA = {
+            income: 0,
+            mNeeds: 0, mWants: 0, mSavings: 0,
+            pNeeds: 50, pWants: 30, pSavings: 20,
             transactions: [],
-            concepts: ['Mercado', 'Transporte', 'Arriendo'],
+            concepts: [],
             isDark: false
         };
+
+        // --- ICONOS DE CATEGORÍA CONSTANTES ---
+        const CATEGORY_ICONS = {
+            needs: '🏠',
+            wants: '🎉',
+            savings: '🐷',
+            extra: '💎'
+        };
+
+        let state = INITIAL_DATA;
         let currentDate = new Date();
         let currentFilter = 'all';
 
-        // --- TEMAS ---
         const THEME = {
             needs: { label: 'Fijos', color: 'bg-blue-500', text: 'text-blue-500' },
             wants: { label: 'Gustos', color: 'bg-pink-500', text: 'text-pink-500' },
@@ -200,19 +216,23 @@
             extra: { label: 'Extra', color: 'bg-purple-500', text: 'text-purple-500' }
         };
 
-        // --- UTILS ---
         function formatCOP(num) { return new Intl.NumberFormat('es-CO').format(num); }
         function parseClean(str) { return parseFloat(String(str).replace(/\./g, '').replace(/,/g, '.')) || 0; }
         function formatInput(el) { let val = el.value.replace(/\D/g, ''); el.value = val !== '' ? new Intl.NumberFormat('es-CO').format(parseInt(val)) : ''; }
-        function getMonthKey(d) { return `${d.getFullYear()}-${d.getMonth()}`; }
 
-        // --- CORE ---
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('loader').style.opacity = '0';
             setTimeout(() => document.getElementById('loader').remove(), 500);
             
             const saved = localStorage.getItem(DB_KEY);
-            if (saved) state = JSON.parse(saved);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    state = { ...INITIAL_DATA, ...parsed };
+                } catch(e) { console.error("Error cargando datos", e); }
+            } else {
+                localStorage.setItem(DB_KEY, JSON.stringify(state));
+            }
             
             if (state.isDark) document.documentElement.classList.add('dark');
             document.getElementById('btn-theme').innerText = state.isDark ? '☀️' : '🌙';
@@ -220,28 +240,22 @@
             renderConfigRows();
             renderFilters();
             
-            // Chequeo inicial: Si el mes actual no tiene presupuesto y no hay historial, sugerir config
-            const currentBudget = getBudgetForMonth(currentDate);
-            if (currentBudget.income === 0 && state.transactions.length === 0) openConfig(); 
-            else render();
+            // Si está en blanco, abrir configuración
+            if (state.income === 0) openConfig();
+            
+            render();
         });
 
-        function getBudgetForMonth(date) {
-            const key = getMonthKey(date);
-            // Retorna el presupuesto del mes o hereda la última configuración conocida
-            return state.budgets[key] || state.latestConfig;
-        }
+        function saveState() { localStorage.setItem(DB_KEY, JSON.stringify(state)); render(); }
 
-        function saveState() {
-            localStorage.setItem(DB_KEY, JSON.stringify(state));
+        function goToCurrentMonth() {
+            currentDate = new Date();
             render();
         }
 
         function render() {
             const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
             document.getElementById('current-month-display').innerText = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
-
-            const budget = getBudgetForMonth(currentDate);
 
             const monthTrans = state.transactions.filter(t => {
                 const d = new Date(t.date);
@@ -259,11 +273,11 @@
                 }
             });
 
-            const balance = (budget.income + totalExtra) - totalSpent;
-            const limits = { needs: budget.mNeeds, wants: budget.mWants, savings: budget.mSavings };
+            const balance = (state.income + totalExtra) - totalSpent;
+            const limits = { needs: state.mNeeds, wants: state.mWants, savings: state.mSavings };
 
             document.getElementById('balance-main').innerText = `$ ${formatCOP(balance)}`;
-            document.getElementById('income-base').innerText = `$ ${formatCOP(budget.income)}`;
+            document.getElementById('income-base').innerText = `$ ${formatCOP(state.income)}`;
             document.getElementById('income-extra').innerText = `+ $ ${formatCOP(totalExtra)}`;
             document.getElementById('total-spent').innerText = `- $ ${formatCOP(totalSpent)}`;
 
@@ -273,20 +287,18 @@
             ['needs', 'wants', 'savings'].forEach(k => {
                 const limit = limits[k] || 1;
                 const s = spent[k];
-                const pct = Math.min((s/limit)*100, 100);
+                const pct = limit > 0 ? Math.min((s/limit)*100, 100) : 0;
                 const rem = limit - s;
                 const isOver = rem < 0;
                 const t = THEME[k];
-                
-                // Usar nombres correctos de propiedades (pNeeds, pWants...)
-                const pKey = 'p' + k.charAt(0).toUpperCase() + k.slice(1);
-                const pctStored = budget[pKey] || 0;
+                const pctStored = k === 'needs' ? state.pNeeds : k === 'wants' ? state.pWants : state.pSavings;
+                const icon = CATEGORY_ICONS[k]; // Icono fijo en tarjetas
 
                 cardsCont.innerHTML += `
                 <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-3 shadow-sm fade-in">
                     <div class="flex justify-between items-center mb-2">
                         <div class="flex items-center gap-1.5">
-                            <span class="text-lg">${k==='savings'?'🐷':(k==='needs'?'🏠':'🎉')}</span>
+                            <span class="text-lg">${icon}</span>
                             <div><h3 class="font-bold text-xs uppercase ${t.text}">${t.label}</h3><span class="text-[10px] text-gray-400">Asig: ${pctStored}%</span></div>
                         </div>
                         <div class="text-right"><p class="text-[9px] uppercase text-gray-400 font-bold">Tope</p><p class="text-xs font-mono font-bold dark:text-white">$ ${formatCOP(limit)}</p></div>
@@ -298,7 +310,6 @@
                 </div>`;
             });
 
-            // Gráfico
             const totalPie = totalSpent || 1;
             const pN = (spent.needs / totalPie) * 100;
             const pW = (spent.wants / totalPie) * 100;
@@ -324,8 +335,16 @@
                     <button onclick="removeConcept(${i})" class="text-gray-400 hover:text-red-500">✕</button>
                 </div>
             `).join('');
-            
-            updateFiltersUI();
+
+            document.querySelectorAll('#filters-container button').forEach(btn => {
+                if(btn.dataset.cat === currentFilter) {
+                    btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
+                    btn.classList.remove('bg-white', 'dark:bg-slate-900', 'text-gray-500', 'dark:text-slate-400');
+                } else {
+                    btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600');
+                    btn.classList.add('bg-white', 'dark:bg-slate-900', 'text-gray-500', 'dark:text-slate-400');
+                }
+            });
         }
 
         function renderFilters() {
@@ -335,18 +354,6 @@
             cont.innerHTML = cats.map(c => `
                 <button onclick="setFilter('${c}')" data-cat="${c}" class="px-3 py-1 rounded-full text-[10px] font-bold whitespace-nowrap border transition-colors bg-white dark:bg-slate-900 text-gray-500 dark:text-slate-400 border-gray-200 dark:border-slate-700">${labels[c]}</button>
             `).join('');
-        }
-        
-        function updateFiltersUI() {
-             document.querySelectorAll('#filters-container button').forEach(btn => {
-                if(btn.dataset.cat === currentFilter) {
-                    btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
-                    btn.classList.remove('bg-white', 'dark:bg-slate-900', 'text-gray-500', 'dark:text-slate-400');
-                } else {
-                    btn.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600');
-                    btn.classList.add('bg-white', 'dark:bg-slate-900', 'text-gray-500', 'dark:text-slate-400');
-                }
-            });
         }
 
         function setFilter(c) { currentFilter = c; render(); }
@@ -376,7 +383,7 @@
             cont.innerHTML = filtered.map(t => `
                 <div class="flex justify-between items-center p-3 border-b border-gray-100 dark:border-slate-800 fade-in">
                     <div class="flex items-center gap-3">
-                        <div class="text-lg">${getIcon(t.category)}</div>
+                        <div class="text-lg">${getIcon(t.name, t.category)}</div>
                         <div><p class="text-xs font-bold text-gray-800 dark:text-white">${t.name}</p><p class="text-[9px] text-gray-400">${new Date(t.date).getDate()}/${new Date(t.date).getMonth()+1}</p></div>
                     </div>
                     <div class="flex items-center gap-2">
@@ -448,13 +455,12 @@
             let sumOthers = 0;
             keys.forEach(k => {
                 if (k !== targetP) {
-                    sumOthers += parseFloat(document.getElementById(`conf-${k}`).value) || 0;
+                    sumOthers += parseFloat(document.getElementById(`conf-${k.substring(1)}`).value) || 0;
                 }
             });
             const rem = 100 - sumOthers;
             if (rem >= 0) {
                 document.getElementById(`conf-${targetP}`).value = rem.toFixed(1);
-                // Extraer el nombre de la key para actualizar el dinero (ej: pNeeds -> Needs)
                 updateFromPercent(targetP.substring(1));
             } else {
                 alert(`La suma de los otros (${sumOthers}%) ya supera el 100%`);
@@ -468,23 +474,15 @@
              lbl.className = Math.abs(sum - 100) < 0.5 ? "text-emerald-500 font-bold flex justify-between border-b pb-1" : "text-rose-500 font-bold flex justify-between border-b pb-1";
         }
 
-        // --- OPERACIONES ---
         function changeMonth(offset) { currentDate.setMonth(currentDate.getMonth() + offset); render(); }
         function toggleTheme() { state.isDark = !state.isDark; saveState(); if(state.isDark) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark'); document.getElementById('btn-theme').innerText = state.isDark ? '🌙' : '☀️'; }
         
         function openConfig() {
             document.getElementById('modal-config').classList.remove('hidden');
-            const budget = getBudgetForMonth(currentDate);
-            
-            document.getElementById('config-month-label').innerText = `EDITANDO: ${document.getElementById('current-month-display').innerText}`;
-            
-            document.getElementById('conf-income').value = formatCOP(budget.income);
+            document.getElementById('conf-income').value = formatCOP(state.income);
             ['Needs', 'Wants', 'Savings'].forEach(k => {
-                // pKeys are pNeeds, pWants...
-                const pKey = 'p' + k;
-                const mKey = 'm' + k;
-                document.getElementById(`conf-p${k}`).value = budget[pKey] || 0;
-                document.getElementById(`conf-m${k}`).value = formatCOP(budget[mKey] || 0);
+                document.getElementById(`conf-p${k}`).value = state[`p${k}`];
+                document.getElementById(`conf-m${k}`).value = formatCOP(state[`m${k}`]);
             });
             updateTotalP();
         }
@@ -493,25 +491,12 @@
         function saveConfig() {
             const inc = parseClean(document.getElementById('conf-income').value);
             if(inc <= 0) return alert("Ingreso inválido");
-            
-            const key = getMonthKey(currentDate);
-            
-            // Crear objeto de presupuesto nuevo
-            const newBudget = {
-                income: inc,
-                mNeeds: parseClean(document.getElementById('conf-mNeeds').value),
-                mWants: parseClean(document.getElementById('conf-mWants').value),
-                mSavings: parseClean(document.getElementById('conf-mSavings').value),
-                pNeeds: parseFloat(document.getElementById('conf-pNeeds').value) || 0,
-                pWants: parseFloat(document.getElementById('conf-pWants').value) || 0,
-                pSavings: parseFloat(document.getElementById('conf-pSavings').value) || 0
-            };
-            
-            state.budgets[key] = newBudget;
-            state.latestConfig = newBudget; // Actualizar plantilla global
-
-            saveState(); 
-            closeConfig();
+            state.income = inc;
+            ['Needs', 'Wants', 'Savings'].forEach(k => {
+                state[`p${k}`] = parseFloat(document.getElementById(`conf-p${k}`).value) || 0;
+                state[`m${k}`] = parseClean(document.getElementById(`conf-m${k}`).value);
+            });
+            saveState(); closeConfig();
         }
 
         function addTransaction() {
@@ -521,17 +506,9 @@
             if(!name || amt <= 0) return;
             if(!state.concepts.includes(name)) state.concepts.push(name);
             
-            // Usamos fecha ACTUAL del sistema para guardar el registro (timestamp real)
-            // Pero podríamos forzar la fecha del mes seleccionado si quisieramos editar pasado.
-            // Para simplicidad, usa Date.now(). Si el usuario está viendo Enero y agrega, se agrega hoy.
-            // MEJORA: Agregar al mes VISIBLE.
-            const transDate = new Date(currentDate);
-            // Ajustar al día de hoy si coincide mes/año, sino día 1
-            const today = new Date();
-            if(today.getMonth() !== transDate.getMonth() || today.getFullYear() !== transDate.getFullYear()) {
-                transDate.setDate(1); 
-            } else {
-                transDate.setDate(today.getDate());
+            let transDate = new Date();
+            if (transDate.getMonth() !== currentDate.getMonth() || transDate.getFullYear() !== currentDate.getFullYear()) {
+                transDate = new Date(currentDate); 
             }
 
             state.transactions.unshift({ id: Date.now(), date: transDate.toISOString(), name, amount: amt, category: cat });
@@ -550,18 +527,10 @@
             if(!window.jspdf) return alert("PDF cargando...");
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            const budget = getBudgetForMonth(currentDate);
-            
             doc.setFontSize(16); doc.text("Extracto Financiero", 14, 20);
             doc.setFontSize(10); doc.text(`Juan Miguel Rios Redondo - ${new Date().toLocaleDateString()}`, 14, 26);
-            
-            const rows = state.transactions.filter(t => {
-                const d = new Date(t.date);
-                return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear();
-            }).map(t => [new Date(t.date).toLocaleDateString(), t.name, t.category, `$ ${formatCOP(t.amount)}`]);
-
+            const rows = state.transactions.filter(t => { const d = new Date(t.date); return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear(); }).map(t => [new Date(t.date).toLocaleDateString(), t.name, t.category, `$ ${formatCOP(t.amount)}`]);
             doc.autoTable({ startY: 35, head: [['Fecha', 'Concepto', 'Tipo', 'Monto']], body: rows });
-            
             const finalY = doc.lastAutoTable.finalY + 10;
             doc.text(`Balance: ${document.getElementById('balance-main').innerText}`, 14, finalY);
             doc.save('finanzas.pdf');
@@ -580,18 +549,16 @@
         }
 
         function resetAll() { if(confirm("¿Borrar todo?")) { localStorage.removeItem(DB_KEY); location.reload(); } }
-        function getIcon(cat) { return cat==='needs'?'🧾':cat==='wants'?'🎉':cat==='savings'?'💰':'💵'; }
-        function getMonthKey(d) { return `${d.getFullYear()}-${d.getMonth()}`; }
-        function getBudgetForMonth(date) { const k = getMonthKey(date); return state.budgets[k] || state.latestConfig; }
-
-        // Listeners
-        document.getElementById('btn-theme').onclick = toggleTheme;
-        document.getElementById('btn-config').onclick = openConfig;
-        document.getElementById('btn-add').onclick = addTransaction;
-        document.getElementById('btn-pdf').onclick = generatePDF;
-        document.querySelectorAll('.close-modal')[0].onclick = closeConfig;
-        document.querySelectorAll('.close-modal')[1].onclick = closeConcepts;
+        
+        function getIcon(name, cat) {
+            // Priority 1: Smart Match
+            const lowerName = (name || '').toLowerCase();
+            const map = { 'netflix': '🎬', 'spotify': '🎵', 'mercado': '🛒', 'comida': '🍔', 'uber': '🚕', 'transporte': '🚌', 'gasolina': '⛽', 'cine': '🍿', 'arriendo': '🏠', 'luz': '💡', 'agua': '💧', 'internet': '🌐', 'celular': '📱', 'gym': '💪', 'salud': '💊', 'regalo': '🎁', 'viaje': '✈️', 'ropa': '👕', 'cafe': '☕', 'cerveza': '🍺', 'ahorro': '🐷', 'banco': '🏦', 'nomina': '💰', 'sueldo': '💰', 'ara': '🛒', 'isimo': '🛒', 'olimpica': '🛒', 'exito': '🛒', 'd1': '🛒' };
+            for (const key in map) if (lowerName.includes(key)) return map[key];
+            
+            // Priority 2: Category Fallback (Consistent with Cards)
+            return CATEGORY_ICONS[cat] || '❓';
+        }
     </script>
 </body>
 </html>
-
