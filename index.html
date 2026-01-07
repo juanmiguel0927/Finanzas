@@ -58,9 +58,9 @@
             <!-- Selector Mes con Botón HOY -->
             <div class="flex justify-between items-center bg-white dark:bg-slate-900 p-2 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800">
                 <button onclick="changeMonth(-1)" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg text-gray-500 font-bold">&lt;</button>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-col items-center">
                     <span id="current-month-display" class="font-bold text-gray-800 dark:text-white capitalize">Cargando...</span>
-                    <button onclick="goToCurrentMonth()" class="text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 px-2 py-1 rounded-full font-bold" title="Ir al mes actual">Hoy</button>
+                    <button onclick="goToCurrentMonth()" class="text-[10px] font-bold text-indigo-500 hover:text-indigo-600 mt-1 uppercase tracking-wide">Hoy</button>
                 </div>
                 <button onclick="changeMonth(1)" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg text-gray-500 font-bold">&gt;</button>
             </div>
@@ -142,13 +142,17 @@
         <div id="modal-config" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div class="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl p-5 border border-gray-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
                 <div class="flex justify-between items-center mb-4 shrink-0">
-                    <h2 class="text-lg font-bold text-gray-800 dark:text-white">Configuración</h2>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800 dark:text-white">Configuración</h2>
+                        <!-- Muestra el mes que se está editando -->
+                        <p id="config-month-label" class="text-[10px] font-bold text-indigo-500 uppercase mt-0.5">---</p>
+                    </div>
                     <button onclick="closeConfig()" class="text-gray-400 text-xl">✕</button>
                 </div>
                 
                 <div class="overflow-y-auto custom-scrollbar flex-1 space-y-5 px-1">
                     <div>
-                        <label class="text-xs font-bold text-gray-500 uppercase">Ingreso Mensual</label>
+                        <label class="text-xs font-bold text-gray-500 uppercase">Ingreso Mensual (Este Mes)</label>
                         <input id="conf-income" type="text" inputmode="numeric" class="w-full bg-gray-100 dark:bg-slate-800 rounded-lg p-3 text-lg font-bold outline-none dark:text-white mt-1" placeholder="0" oninput="handleConfigIncome(this)">
                     </div>
 
@@ -162,7 +166,7 @@
                 </div>
 
                 <div class="shrink-0 space-y-3 pt-4 border-t border-gray-200 dark:border-slate-800 mt-2">
-                    <button onclick="saveConfig()" id="btn-save-config" class="w-full py-3 rounded-xl font-bold text-sm bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-colors">Guardar</button>
+                    <button onclick="saveConfig()" id="btn-save-config" class="w-full py-3 rounded-xl font-bold text-sm bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-colors">Guardar Cambios</button>
                     <div class="grid grid-cols-2 gap-2">
                         <button onclick="exportData()" class="py-2 bg-gray-100 dark:bg-slate-800 rounded-lg text-xs font-bold text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700">⬇️ Backup</button>
                         <label class="flex justify-center items-center gap-2 py-2 bg-gray-100 dark:bg-slate-800 rounded-lg text-xs font-bold text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 cursor-pointer">
@@ -186,18 +190,18 @@
 
     <!-- LOGICA JS -->
     <script>
-        // --- DATOS INICIALES EN BLANCO ---
-        const DB_KEY = 'finanzas_v64_clean';
+        const DB_KEY = 'finanzas_v66_clean_monthly';
+        
+        // Datos LIMPIOS
         const INITIAL_DATA = {
-            income: 0,
-            mNeeds: 0, mWants: 0, mSavings: 0,
-            pNeeds: 50, pWants: 30, pSavings: 20,
+            monthlyBudgets: {}, // Almacenará { "2026-0": { income: 0, mNeeds... } }
+            // Configuración por defecto para meses nuevos (todo en cero)
+            defaultConfig: { income: 0, mNeeds: 0, mWants: 0, mSavings: 0, pNeeds: 50, pWants: 30, pSavings: 20 },
             transactions: [],
             concepts: [],
             isDark: false
         };
 
-        // --- ICONOS DE CATEGORÍA CONSTANTES ---
         const CATEGORY_ICONS = {
             needs: '🏠',
             wants: '🎉',
@@ -206,7 +210,7 @@
         };
 
         let state = INITIAL_DATA;
-        let currentDate = new Date();
+        let currentDate = new Date(); // Fecha real
         let currentFilter = 'all';
 
         const THEME = {
@@ -219,6 +223,19 @@
         function formatCOP(num) { return new Intl.NumberFormat('es-CO').format(num); }
         function parseClean(str) { return parseFloat(String(str).replace(/\./g, '').replace(/,/g, '.')) || 0; }
         function formatInput(el) { let val = el.value.replace(/\D/g, ''); el.value = val !== '' ? new Intl.NumberFormat('es-CO').format(parseInt(val)) : ''; }
+        function getMonthKey(d) { return `${d.getFullYear()}-${d.getMonth()}`; }
+
+        function getMonthlyBudget(date) {
+            const key = getMonthKey(date);
+            // Si ya existe config para este mes, retornarla
+            if (state.monthlyBudgets && state.monthlyBudgets[key]) {
+                return state.monthlyBudgets[key];
+            }
+            // Si no, buscar la configuración del mes ANTERIOR más cercano (Herencia)
+            // O retornar default (0)
+            // Para "App Limpia", retornamos default 0.
+            return state.defaultConfig;
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('loader').style.opacity = '0';
@@ -228,6 +245,8 @@
             if (saved) {
                 try {
                     const parsed = JSON.parse(saved);
+                    // Migración simple
+                    if (!parsed.monthlyBudgets) parsed.monthlyBudgets = {};
                     state = { ...INITIAL_DATA, ...parsed };
                 } catch(e) { console.error("Error cargando datos", e); }
             } else {
@@ -240,22 +259,21 @@
             renderConfigRows();
             renderFilters();
             
-            // Si está en blanco, abrir configuración
-            if (state.income === 0) openConfig();
-            
-            render();
+            // Si el mes actual no tiene presupuesto, abrir config para empezarlo
+            const currentBudget = getMonthlyBudget(currentDate);
+            if (currentBudget.income === 0 && state.transactions.length === 0) openConfig(); 
+            else render();
         });
 
         function saveState() { localStorage.setItem(DB_KEY, JSON.stringify(state)); render(); }
-
-        function goToCurrentMonth() {
-            currentDate = new Date();
-            render();
-        }
+        function goToCurrentMonth() { currentDate = new Date(); render(); }
 
         function render() {
             const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-            document.getElementById('current-month-display').innerText = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+            const monthLabel = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+            document.getElementById('current-month-display').innerText = monthLabel;
+
+            const budget = getMonthlyBudget(currentDate);
 
             const monthTrans = state.transactions.filter(t => {
                 const d = new Date(t.date);
@@ -273,11 +291,11 @@
                 }
             });
 
-            const balance = (state.income + totalExtra) - totalSpent;
-            const limits = { needs: state.mNeeds, wants: state.mWants, savings: state.mSavings };
+            const balance = (budget.income + totalExtra) - totalSpent;
+            const limits = { needs: budget.mNeeds, wants: budget.mWants, savings: budget.mSavings };
 
             document.getElementById('balance-main').innerText = `$ ${formatCOP(balance)}`;
-            document.getElementById('income-base').innerText = `$ ${formatCOP(state.income)}`;
+            document.getElementById('income-base').innerText = `$ ${formatCOP(budget.income)}`;
             document.getElementById('income-extra').innerText = `+ $ ${formatCOP(totalExtra)}`;
             document.getElementById('total-spent').innerText = `- $ ${formatCOP(totalSpent)}`;
 
@@ -291,14 +309,15 @@
                 const rem = limit - s;
                 const isOver = rem < 0;
                 const t = THEME[k];
-                const pctStored = k === 'needs' ? state.pNeeds : k === 'wants' ? state.pWants : state.pSavings;
-                const icon = CATEGORY_ICONS[k]; // Icono fijo en tarjetas
+                
+                const pKey = 'p' + k.charAt(0).toUpperCase() + k.slice(1);
+                const pctStored = budget[pKey] || 0;
 
                 cardsCont.innerHTML += `
                 <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-3 shadow-sm fade-in">
                     <div class="flex justify-between items-center mb-2">
                         <div class="flex items-center gap-1.5">
-                            <span class="text-lg">${icon}</span>
+                            <span class="text-lg">${CATEGORY_ICONS[k]}</span>
                             <div><h3 class="font-bold text-xs uppercase ${t.text}">${t.label}</h3><span class="text-[10px] text-gray-400">Asig: ${pctStored}%</span></div>
                         </div>
                         <div class="text-right"><p class="text-[9px] uppercase text-gray-400 font-bold">Tope</p><p class="text-xs font-mono font-bold dark:text-white">$ ${formatCOP(limit)}</p></div>
@@ -479,10 +498,19 @@
         
         function openConfig() {
             document.getElementById('modal-config').classList.remove('hidden');
-            document.getElementById('conf-income').value = formatCOP(state.income);
+            const budget = getMonthlyBudget(currentDate);
+            
+            // Mostrar mes en el título del modal
+            const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            const monthLabel = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+            document.getElementById('config-month-label').innerText = `(${monthLabel})`;
+
+            document.getElementById('conf-income').value = formatCOP(budget.income);
             ['Needs', 'Wants', 'Savings'].forEach(k => {
-                document.getElementById(`conf-p${k}`).value = state[`p${k}`];
-                document.getElementById(`conf-m${k}`).value = formatCOP(state[`m${k}`]);
+                const pKey = 'p' + k;
+                const mKey = 'm' + k;
+                document.getElementById(`conf-p${k}`).value = budget[pKey] || 0;
+                document.getElementById(`conf-m${k}`).value = formatCOP(budget[mKey] || 0);
             });
             updateTotalP();
         }
@@ -491,12 +519,26 @@
         function saveConfig() {
             const inc = parseClean(document.getElementById('conf-income').value);
             if(inc <= 0) return alert("Ingreso inválido");
-            state.income = inc;
-            ['Needs', 'Wants', 'Savings'].forEach(k => {
-                state[`p${k}`] = parseFloat(document.getElementById(`conf-p${k}`).value) || 0;
-                state[`m${k}`] = parseClean(document.getElementById(`conf-m${k}`).value);
-            });
-            saveState(); closeConfig();
+            
+            const key = getMonthKey(currentDate);
+            const newBudget = {
+                income: inc,
+                mNeeds: parseClean(document.getElementById('conf-mNeeds').value),
+                mWants: parseClean(document.getElementById('conf-mWants').value),
+                mSavings: parseClean(document.getElementById('conf-mSavings').value),
+                pNeeds: parseFloat(document.getElementById('conf-pNeeds').value) || 0,
+                pWants: parseFloat(document.getElementById('conf-pWants').value) || 0,
+                pSavings: parseFloat(document.getElementById('conf-pSavings').value) || 0
+            };
+            
+            if(!state.monthlyBudgets) state.monthlyBudgets = {};
+            state.monthlyBudgets[key] = newBudget;
+            
+            // Actualizar default solo si es el mes más reciente (opcional, por ahora lo hacemos siempre)
+            state.defaultConfig = newBudget;
+
+            saveState(); 
+            closeConfig();
         }
 
         function addTransaction() {
@@ -507,6 +549,7 @@
             if(!state.concepts.includes(name)) state.concepts.push(name);
             
             let transDate = new Date();
+            // Asegurar que se guarde en el mes seleccionado si es diferente al actual
             if (transDate.getMonth() !== currentDate.getMonth() || transDate.getFullYear() !== currentDate.getFullYear()) {
                 transDate = new Date(currentDate); 
             }
@@ -527,12 +570,27 @@
             if(!window.jspdf) return alert("PDF cargando...");
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
+            const budget = getMonthlyBudget(currentDate);
+            
             doc.setFontSize(16); doc.text("Extracto Financiero", 14, 20);
             doc.setFontSize(10); doc.text(`Juan Miguel Rios Redondo - ${new Date().toLocaleDateString()}`, 14, 26);
+            
             const rows = state.transactions.filter(t => { const d = new Date(t.date); return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear(); }).map(t => [new Date(t.date).toLocaleDateString(), t.name, t.category, `$ ${formatCOP(t.amount)}`]);
             doc.autoTable({ startY: 35, head: [['Fecha', 'Concepto', 'Tipo', 'Monto']], body: rows });
             const finalY = doc.lastAutoTable.finalY + 10;
-            doc.text(`Balance: ${document.getElementById('balance-main').innerText}`, 14, finalY);
+            
+            // Calculos Mes
+            let spent = 0; let extra = 0;
+            state.transactions.filter(t => { const d = new Date(t.date); return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear(); }).forEach(t => { if(t.category === 'extra') extra += t.amount; else spent += t.amount; });
+            const balance = (budget.income + extra) - spent;
+
+            doc.text(`Resumen Mensual:`, 14, finalY + 5);
+            doc.text(`Base: $ ${formatCOP(budget.income)}`, 14, finalY + 12);
+            doc.text(`Extra: + $ ${formatCOP(extra)}`, 14, finalY + 18);
+            doc.text(`Gastado: - $ ${formatCOP(spent)}`, 14, finalY + 24);
+            doc.setFont(undefined, 'bold');
+            doc.text(`Disponible Final: $ ${formatCOP(balance)}`, 14, finalY + 32);
+
             doc.save('finanzas.pdf');
         }
 
@@ -551,12 +609,9 @@
         function resetAll() { if(confirm("¿Borrar todo?")) { localStorage.removeItem(DB_KEY); location.reload(); } }
         
         function getIcon(name, cat) {
-            // Priority 1: Smart Match
             const lowerName = (name || '').toLowerCase();
             const map = { 'netflix': '🎬', 'spotify': '🎵', 'mercado': '🛒', 'comida': '🍔', 'uber': '🚕', 'transporte': '🚌', 'gasolina': '⛽', 'cine': '🍿', 'arriendo': '🏠', 'luz': '💡', 'agua': '💧', 'internet': '🌐', 'celular': '📱', 'gym': '💪', 'salud': '💊', 'regalo': '🎁', 'viaje': '✈️', 'ropa': '👕', 'cafe': '☕', 'cerveza': '🍺', 'ahorro': '🐷', 'banco': '🏦', 'nomina': '💰', 'sueldo': '💰', 'ara': '🛒', 'isimo': '🛒', 'olimpica': '🛒', 'exito': '🛒', 'd1': '🛒' };
             for (const key in map) if (lowerName.includes(key)) return map[key];
-            
-            // Priority 2: Category Fallback (Consistent with Cards)
             return CATEGORY_ICONS[cat] || '❓';
         }
     </script>
