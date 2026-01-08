@@ -122,13 +122,13 @@
                     <div class="flex items-center gap-2 h-10">
                          <input id="trans-amount" type="text" inputmode="numeric" class="flex-1 h-full bg-gray-100 dark:bg-slate-800 border-none rounded-lg px-3 text-sm font-mono outline-none dark:text-white transition-colors" placeholder="$ 0" oninput="formatInput(this)">
                          
-                         <!-- Opción 4x1000 -->
+                         <!-- Opción Impuesto Personalizable -->
                          <label class="checkbox-wrapper flex items-center gap-2 cursor-pointer bg-gray-50 dark:bg-slate-800 px-3 h-full rounded-lg border border-gray-100 dark:border-slate-700 select-none">
                              <input type="checkbox" id="trans-tax" class="hidden">
                              <div class="w-4 h-4 border-2 border-gray-400 rounded flex items-center justify-center transition-colors">
                                  <svg class="w-3 h-3 text-white hidden pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
                              </div>
-                             <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 whitespace-nowrap">4x1000</span>
+                             <span id="tax-label" class="text-[10px] font-bold text-gray-500 dark:text-gray-400 whitespace-nowrap">4x1000</span>
                          </label>
 
                         <button onclick="addTransaction()" class="bg-indigo-600 text-white h-full px-4 rounded-lg font-bold shadow-lg hover:bg-indigo-700 active:scale-95 transition-transform flex items-center justify-center text-xl">+</button>
@@ -173,6 +173,15 @@
                         <input id="conf-income" type="text" inputmode="numeric" class="w-full bg-gray-100 dark:bg-slate-800 rounded-lg p-3 text-lg font-bold outline-none dark:text-white mt-1" placeholder="0" oninput="handleConfigIncome(this)">
                     </div>
 
+                    <!-- Configuración Impuesto -->
+                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-gray-200 dark:border-slate-700">
+                         <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Tasa Impuesto (x1000)</label>
+                         <div class="flex items-center gap-2">
+                             <input id="conf-tax-rate" type="number" class="w-16 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-600 rounded px-2 py-1 text-center text-sm outline-none dark:text-white font-mono" value="4" oninput="if(this.value<0)this.value=0">
+                             <span class="text-xs text-gray-400">Ej: 4 para 4x1000</span>
+                         </div>
+                    </div>
+
                     <div class="space-y-4">
                         <div class="flex justify-between text-xs font-bold text-gray-500 border-b border-gray-200 dark:border-slate-700 pb-1">
                             <span id="dist-total-lbl">Distribución</span>
@@ -214,25 +223,26 @@
 
     <!-- LOGICA JS -->
     <script>
-        // --- LLAVE MAESTRA PERMANENTE ---
-        const DB_KEY = 'finanzas_app_production';
+        // --- LLAVE MAESTRA ---
+        const DB_KEY = 'finanzas_v78_custom_tax';
         
-        // --- LLAVES DE VERSIONES ANTERIORES PARA MIGRAR DATOS ---
+        // --- LLAVES ANTERIORES PARA MIGRAR DATOS ---
         const OLD_KEYS = [
+            'finanzas_app_production',
             'finanzas_v75_final_perfect', 
             'finanzas_v73_precision_fix', 
             'finanzas_v66_clean_monthly', 
-            'finanzas_v54_data',
-            'finanzas_v47_fixed'
+            'finanzas_v54_data'
         ];
 
-        // DATOS INICIALES (Plantilla)
+        // DATOS INICIALES
         const INITIAL_DATA = {
             monthlyBudgets: {},
             defaultConfig: { income: 0, mNeeds: 0, mWants: 0, mSavings: 0, pNeeds: 50, pWants: 30, pSavings: 20 },
             transactions: [],
             concepts: [],
-            isDark: false
+            isDark: false,
+            taxRate: 4 // Tasa por defecto: 4x1000
         };
 
         const CATEGORY_ICONS = { needs: '🏠', wants: '🎉', savings: '🐷', extra: '💎' };
@@ -263,7 +273,7 @@
 
         // --- SISTEMA DE CARGA Y MIGRACIÓN ---
         function loadData() {
-            // 1. Intentar cargar la base de datos maestra
+            // 1. Intentar cargar la base de datos actual
             const masterData = localStorage.getItem(DB_KEY);
             if (masterData) return JSON.parse(masterData);
 
@@ -278,8 +288,6 @@
                     return { ...INITIAL_DATA, ...parsed };
                 }
             }
-
-            // 3. Si no hay nada, retornar limpio
             return INITIAL_DATA;
         }
 
@@ -289,12 +297,16 @@
             
             // Cargar datos (o migrar)
             state = loadData();
+            // Asegurar que taxRate exista en datos migrados
+            if (state.taxRate === undefined) state.taxRate = 4;
             
-            // Guardar inmediatamente en la llave maestra para el futuro
             saveState();
             
             if (state.isDark) document.documentElement.classList.add('dark');
             document.getElementById('btn-theme').innerText = state.isDark ? '☀️' : '🌙';
+            
+            // Actualizar etiqueta del impuesto en UI
+            updateTaxLabel();
 
             renderConfigRows();
             renderFilters();
@@ -307,6 +319,11 @@
 
         function saveState() { localStorage.setItem(DB_KEY, JSON.stringify(state)); render(); }
         function goToCurrentMonth() { currentDate = new Date(); render(); }
+        
+        function updateTaxLabel() {
+             const label = document.getElementById('tax-label');
+             if(label) label.innerText = `${state.taxRate}x1000`;
+        }
 
         function render() {
             const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
@@ -340,7 +357,7 @@
             document.getElementById('income-base').innerText = `$ ${formatCOP(budget.income)}`;
             document.getElementById('income-extra').innerText = `+ $ ${formatCOP(totalExtra)}`;
             document.getElementById('total-spent').innerText = `- $ ${formatCOP(totalSpent)}`;
-            document.getElementById('tax-total-display').innerText = totalTax > 0 ? `4x1000 del mes: $ ${formatCOP(totalTax)}` : '';
+            document.getElementById('tax-total-display').innerText = totalTax > 0 ? `Impuestos (${state.taxRate}x1000): $ ${formatCOP(totalTax)}` : '';
 
             const cardsCont = document.getElementById('cards-container');
             cardsCont.innerHTML = '';
@@ -407,6 +424,9 @@
                     btn.classList.add('bg-white', 'dark:bg-slate-900', 'text-gray-500', 'dark:text-slate-400');
                 }
             });
+            
+            // Actualizar etiqueta del impuesto en UI principal si es necesario (se hace en init y config)
+            updateTaxLabel();
         }
 
         function renderFilters() {
@@ -450,7 +470,7 @@
                             <p class="text-xs font-bold text-gray-800 dark:text-white">${t.name}</p>
                             <p class="text-[9px] text-gray-400">
                                 ${new Date(t.date).getDate()}/${new Date(t.date).getMonth()+1}
-                                ${t.tax ? `<span class="text-indigo-500 font-bold ml-1">(+4x1000)</span>` : ''}
+                                ${t.tax ? `<span class="text-indigo-500 font-bold ml-1">(+${state.taxRate || 4}x1000)</span>` : ''}
                             </p>
                         </div>
                     </div>
@@ -528,7 +548,6 @@
                     sumOthers += val;
                 }
             });
-            
             const rem = 100 - sumOthers;
             if (rem >= 0) {
                 document.getElementById(`conf-${targetP}`).value = parseFloat(rem.toFixed(2));
@@ -556,6 +575,9 @@
             document.getElementById('config-month-label').innerText = `(${monthName})`;
 
             document.getElementById('conf-income').value = formatCOP(budget.income);
+            // Cargar tasa de impuesto
+            document.getElementById('conf-tax-rate').value = state.taxRate || 4;
+
             ['Needs', 'Wants', 'Savings'].forEach(k => {
                 const pKey = 'p' + k;
                 const mKey = 'm' + k;
@@ -568,6 +590,8 @@
         
         function saveConfig() {
             const inc = parseClean(document.getElementById('conf-income').value);
+            if(inc <= 0 && document.getElementById('conf-income').value !== "" && document.getElementById('conf-income').value !== "0") return alert("Ingreso inválido");
+            
             const key = getMonthKey(currentDate);
             const newBudget = {
                 income: inc,
@@ -581,11 +605,21 @@
             
             if(!state.monthlyBudgets) state.monthlyBudgets = {};
             state.monthlyBudgets[key] = newBudget;
+            
+            // Guardar Tasa Impuesto
+            state.taxRate = parseFloat(document.getElementById('conf-tax-rate').value) || 0;
+            updateTaxLabel(); // Actualizar UI principal
 
             saveState(); 
             closeConfig();
         }
+        
+        function updateTaxLabel() {
+             const label = document.getElementById('tax-label');
+             if(label) label.innerText = `${state.taxRate || 4}x1000`;
+        }
 
+        // --- BORRAR SOLO MOVIMIENTOS DEL MES ---
         function clearMonthTransactions() {
             const currentKey = getMonthKey(currentDate);
             const monthName = document.getElementById('current-month-display').innerText;
@@ -600,6 +634,7 @@
             }
         }
 
+        // --- BORRAR MES COMPLETO (Config + Movimientos) ---
         function resetMonth() {
             const currentKey = getMonthKey(currentDate);
             const monthName = document.getElementById('current-month-display').innerText;
@@ -617,8 +652,9 @@
                 saveState();
                 closeConfig();
                 render();
-                alert(`Mes de ${monthName} reiniciado.`);
-                openConfig(); 
+                // Si queda en 0, abrir config para rellenar
+                const budget = getMonthlyBudget(currentDate);
+                if (budget.income === 0) openConfig(); 
             }
         }
 
@@ -632,8 +668,11 @@
             if(!state.concepts.includes(name)) state.concepts.push(name);
             
             let taxValue = 0;
+            // Usar la tasa configurada (state.taxRate)
+            const rate = (state.taxRate !== undefined ? state.taxRate : 4) / 1000;
+
             if (cat !== 'extra' && hasTax) {
-                taxValue = Math.round(amt * 0.004);
+                taxValue = Math.round(amt * rate);
                 amt += taxValue;
             }
 
@@ -672,7 +711,7 @@
             doc.setFontSize(16); doc.text("Extracto Financiero", 14, 20);
             doc.setFontSize(10); doc.text(`Juan Miguel Rios Redondo - ${new Date().toLocaleDateString()}`, 14, 26);
             
-            const rows = state.transactions.filter(t => { const d = new Date(t.date); return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear(); }).map(t => [new Date(t.date).toLocaleDateString(), t.name + (t.tax ? " (+4x1000)" : ""), t.category, `$ ${formatCOP(t.amount)}`]);
+            const rows = state.transactions.filter(t => { const d = new Date(t.date); return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear(); }).map(t => [new Date(t.date).toLocaleDateString(), t.name + (t.tax ? ` (+${state.taxRate||4}x1000)` : ""), t.category, `$ ${formatCOP(t.amount)}`]);
             doc.autoTable({ startY: 35, head: [['Fecha', 'Concepto', 'Tipo', 'Monto']], body: rows });
             const finalY = doc.lastAutoTable.finalY + 10;
             
@@ -688,7 +727,7 @@
             doc.text(`Base: $ ${formatCOP(budget.income)}`, 14, finalY + 12);
             doc.text(`Extra: + $ ${formatCOP(extra)}`, 14, finalY + 18);
             doc.text(`Gastado: - $ ${formatCOP(spent)}`, 14, finalY + 24);
-            if (totalTax > 0) doc.text(`(Incluye 4x1000: $ ${formatCOP(totalTax)})`, 14, finalY + 30);
+            if (totalTax > 0) doc.text(`(Incluye ${state.taxRate||4}x1000: $ ${formatCOP(totalTax)})`, 14, finalY + 30);
             
             doc.setFont(undefined, 'bold');
             doc.text(`Disponible Final: $ ${formatCOP(balance)}`, 14, finalY + 40);
@@ -711,9 +750,12 @@
         function resetAll() { if(confirm("¿Borrar todo?")) { localStorage.removeItem(DB_KEY); location.reload(); } }
         
         function getIcon(name, cat) {
+            // Smart Match
             const lowerName = (name || '').toLowerCase();
             const map = { 'netflix': '🎬', 'spotify': '🎵', 'mercado': '🛒', 'comida': '🍔', 'uber': '🚕', 'transporte': '🚌', 'gasolina': '⛽', 'cine': '🍿', 'arriendo': '🏠', 'luz': '💡', 'agua': '💧', 'internet': '🌐', 'celular': '📱', 'gym': '💪', 'salud': '💊', 'regalo': '🎁', 'viaje': '✈️', 'ropa': '👕', 'cafe': '☕', 'cerveza': '🍺', 'ahorro': '🐷', 'banco': '🏦', 'nomina': '💰', 'sueldo': '💰', 'ara': '🛒', 'isimo': '🛒', 'olimpica': '🛒', 'exito': '🛒', 'd1': '🛒' };
             for (const key in map) if (lowerName.includes(key)) return map[key];
+            
+            // Category Fallback
             return CATEGORY_ICONS[cat] || '❓';
         }
     </script>
