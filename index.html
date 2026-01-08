@@ -40,7 +40,7 @@
 </head>
 <body class="bg-gray-100 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300 w-full overflow-x-hidden flex justify-center min-h-screen">
 
-    <div id="loader"><h2 class="text-xl font-bold animate-pulse">Iniciando App...</h2></div>
+    <div id="loader"><h2 class="text-xl font-bold animate-pulse">Cargando Finanzas...</h2></div>
 
     <div id="app" class="w-full max-w-md bg-white dark:bg-slate-950 shadow-2xl relative border-x border-gray-200 dark:border-slate-800 min-h-screen flex flex-col">
         
@@ -120,7 +120,7 @@
                     </div>
                     
                     <div class="flex items-center gap-2 h-10">
-                         <input id="trans-amount" type="text" inputmode="numeric" class="flex-1 h-full bg-gray-100 dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-sm font-mono outline-none dark:text-white transition-colors" placeholder="$ 0" oninput="formatInput(this)">
+                         <input id="trans-amount" type="text" inputmode="numeric" class="flex-1 h-full bg-gray-100 dark:bg-slate-800 border-none rounded-lg px-3 text-sm font-mono outline-none dark:text-white transition-colors" placeholder="$ 0" oninput="formatInput(this)">
                          
                          <!-- Opción 4x1000 -->
                          <label class="checkbox-wrapper flex items-center gap-2 cursor-pointer bg-gray-50 dark:bg-slate-800 px-3 h-full rounded-lg border border-gray-100 dark:border-slate-700 select-none">
@@ -184,6 +184,7 @@
 
                 <div class="shrink-0 space-y-3 pt-4 border-t border-gray-200 dark:border-slate-800 mt-2">
                     <button onclick="saveConfig()" id="btn-save-config" class="w-full py-3 rounded-xl font-bold text-sm bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-colors">Guardar Cambios</button>
+                    
                     <div class="grid grid-cols-2 gap-2">
                         <button onclick="exportData()" class="py-2 bg-gray-100 dark:bg-slate-800 rounded-lg text-xs font-bold text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700">⬇️ Backup</button>
                         <label class="flex justify-center items-center gap-2 py-2 bg-gray-100 dark:bg-slate-800 rounded-lg text-xs font-bold text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 cursor-pointer">
@@ -194,7 +195,7 @@
                     <!-- BOTONES BORRAR -->
                     <button onclick="clearMonthTransactions()" class="w-full py-2 bg-yellow-50 dark:bg-yellow-900/10 text-yellow-600 dark:text-yellow-400 rounded-lg text-xs font-bold border border-yellow-200 dark:border-yellow-800/30">🧹 Limpiar Movimientos (Este Mes)</button>
                     
-                    <button onclick="resetMonth()" class="w-full py-2 bg-orange-50 dark:bg-orange-900/10 text-orange-600 dark:text-orange-400 rounded-lg text-xs font-bold border border-orange-200 dark:border-orange-800/30">🗑️ Borrar Solo Este Mes</button>
+                    <button onclick="resetMonth()" class="w-full py-2 bg-orange-50 dark:bg-orange-900/10 text-orange-600 dark:text-orange-400 rounded-lg text-xs font-bold border border-orange-200 dark:border-orange-800/30">🗑️ Reiniciar Mes (Config + Datos)</button>
                     
                     <button onclick="resetAll()" class="w-full text-xs text-rose-500 hover:underline text-center py-2">🔥 Reiniciar de Fábrica</button>
                 </div>
@@ -213,8 +214,19 @@
 
     <!-- LOGICA JS -->
     <script>
-        // DATOS INICIALES EN BLANCO
-        const DB_KEY = 'finanzas_v75_final_perfect';
+        // --- LLAVE MAESTRA PERMANENTE ---
+        const DB_KEY = 'finanzas_app_production';
+        
+        // --- LLAVES DE VERSIONES ANTERIORES PARA MIGRAR DATOS ---
+        const OLD_KEYS = [
+            'finanzas_v75_final_perfect', 
+            'finanzas_v73_precision_fix', 
+            'finanzas_v66_clean_monthly', 
+            'finanzas_v54_data',
+            'finanzas_v47_fixed'
+        ];
+
+        // DATOS INICIALES (Plantilla)
         const INITIAL_DATA = {
             monthlyBudgets: {},
             defaultConfig: { income: 0, mNeeds: 0, mWants: 0, mSavings: 0, pNeeds: 50, pWants: 30, pSavings: 20 },
@@ -249,20 +261,37 @@
             return { income: 0, mNeeds: 0, mWants: 0, mSavings: 0, pNeeds: 50, pWants: 30, pSavings: 20 };
         }
 
+        // --- SISTEMA DE CARGA Y MIGRACIÓN ---
+        function loadData() {
+            // 1. Intentar cargar la base de datos maestra
+            const masterData = localStorage.getItem(DB_KEY);
+            if (masterData) return JSON.parse(masterData);
+
+            // 2. Si no existe, buscar datos antiguos y migrarlos
+            for (let oldKey of OLD_KEYS) {
+                const oldData = localStorage.getItem(oldKey);
+                if (oldData) {
+                    console.log("Migrando datos de: " + oldKey);
+                    const parsed = JSON.parse(oldData);
+                    // Asegurar compatibilidad
+                    if(!parsed.monthlyBudgets) parsed.monthlyBudgets = {};
+                    return { ...INITIAL_DATA, ...parsed };
+                }
+            }
+
+            // 3. Si no hay nada, retornar limpio
+            return INITIAL_DATA;
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('loader').style.opacity = '0';
             setTimeout(() => document.getElementById('loader').remove(), 500);
             
-            const saved = localStorage.getItem(DB_KEY);
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    if (!parsed.monthlyBudgets) parsed.monthlyBudgets = {};
-                    state = { ...INITIAL_DATA, ...parsed };
-                } catch(e) { console.error("Error cargando datos", e); }
-            } else {
-                localStorage.setItem(DB_KEY, JSON.stringify(state));
-            }
+            // Cargar datos (o migrar)
+            state = loadData();
+            
+            // Guardar inmediatamente en la llave maestra para el futuro
+            saveState();
             
             if (state.isDark) document.documentElement.classList.add('dark');
             document.getElementById('btn-theme').innerText = state.isDark ? '☀️' : '🌙';
@@ -442,7 +471,7 @@
                 <div class="space-y-1">
                     <div class="flex justify-between items-end"><span class="text-xs font-bold text-gray-700 dark:text-slate-200">${i.l}</span><button onclick="autoFill('p${i.k}')" class="text-[10px] text-gray-500 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-gray-200 dark:border-slate-700">⚡ Auto</button></div>
                     <div class="grid grid-cols-2 gap-2">
-                        <div class="relative"><span class="absolute left-2 top-2 text-xs text-gray-400 pointer-events-none">%</span><input id="conf-p${i.k}" type="number" class="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded px-2 pl-6 py-2 text-right text-sm outline-none dark:text-white" oninput="updateFromPercent('${i.k}')" placeholder="0"></div>
+                        <div class="relative"><input id="conf-p${i.k}" type="number" class="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded px-2 py-2 text-right text-sm outline-none dark:text-white" oninput="updateFromPercent('${i.k}')" placeholder="0"><span class="absolute right-7 top-2 text-xs text-gray-400 pointer-events-none">%</span></div>
                         <div class="relative"><span class="absolute left-2 top-2 text-xs text-gray-400 pointer-events-none">$</span><input id="conf-m${i.k}" type="text" inputmode="numeric" class="w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded px-2 py-2 pl-5 text-right text-sm outline-none dark:text-white font-mono" oninput="updateFromMoney('${i.k}', this)" placeholder="0"></div>
                     </div>
                 </div>
@@ -491,14 +520,10 @@
 
         function autoFill(targetP) {
             const keys = ['pNeeds', 'pWants', 'pSavings'];
-            // Eliminar la 'p' para obtener la clave del input de dinero si fuera necesario
-            // Pero aquí solo sumamos porcentajes
             let sumOthers = 0;
-            
             keys.forEach(k => {
-                // targetP es 'pNeeds', k es 'pNeeds'
                 if (k !== targetP) {
-                    const inputId = `conf-${k}`; // id="conf-pNeeds"
+                    const inputId = `conf-${k}`;
                     const val = parseFloat(document.getElementById(inputId).value) || 0;
                     sumOthers += val;
                 }
@@ -506,10 +531,7 @@
             
             const rem = 100 - sumOthers;
             if (rem >= 0) {
-                // Actualizar %
                 document.getElementById(`conf-${targetP}`).value = parseFloat(rem.toFixed(2));
-                // Actualizar $ basado en el nuevo %
-                // targetP es 'pNeeds' -> key 'Needs'
                 updateFromPercent(targetP.substring(1));
             } else {
                 alert(`La suma de los otros (${sumOthers}%) ya supera el 100%`);
@@ -517,7 +539,7 @@
         }
 
         function updateTotalP() {
-             const sum = ['Needs', 'Wants', 'Savings'].reduce((acc, k) => acc + (parseFloat(document.getElementById(`conf-p${k}`).value)||0), 0);
+             const sum = ['pNeeds', 'pWants', 'pSavings'].reduce((acc, k) => acc + (parseFloat(document.getElementById(`conf-${k}`).value)||0), 0);
              const lbl = document.getElementById('dist-total-lbl');
              lbl.innerText = `Distribución (${sum.toFixed(1)}%)`;
              lbl.className = Math.abs(sum - 100) < 0.1 ? "text-emerald-500 font-bold flex justify-between border-b pb-1" : "text-rose-500 font-bold flex justify-between border-b pb-1";
@@ -546,8 +568,6 @@
         
         function saveConfig() {
             const inc = parseClean(document.getElementById('conf-income').value);
-            // Permitimos guardar aunque sea 0, para resetear
-            
             const key = getMonthKey(currentDate);
             const newBudget = {
                 income: inc,
@@ -566,13 +586,11 @@
             closeConfig();
         }
 
-        // --- BORRAR SOLO MOVIMIENTOS DEL MES ---
         function clearMonthTransactions() {
             const currentKey = getMonthKey(currentDate);
             const monthName = document.getElementById('current-month-display').innerText;
 
             if(confirm(`¿Estás seguro de limpiar la LISTA DE GASTOS de ${monthName}? El ingreso base se mantendrá.`)) {
-                // Filtrar para mantener todo lo que NO sea de este mes
                 state.transactions = state.transactions.filter(t => {
                     const d = new Date(t.date);
                     return getMonthKey(d) !== currentKey;
@@ -582,19 +600,16 @@
             }
         }
 
-        // --- BORRAR MES COMPLETO (Config + Movimientos) ---
         function resetMonth() {
             const currentKey = getMonthKey(currentDate);
             const monthName = document.getElementById('current-month-display').innerText;
             
             if(confirm(`¿Borrar TODO (Ingreso + Gastos) de ${monthName}?`)) {
-                // Borrar transacciones
                 state.transactions = state.transactions.filter(t => {
                     const d = new Date(t.date);
                     return getMonthKey(d) !== currentKey;
                 });
 
-                // Borrar presupuesto
                 if(state.monthlyBudgets && state.monthlyBudgets[currentKey]) {
                     delete state.monthlyBudgets[currentKey];
                 }
@@ -623,7 +638,6 @@
             }
 
             let transDate = new Date();
-            // Asegurar que se guarde en el mes seleccionado
             if (transDate.getMonth() !== currentDate.getMonth() || transDate.getFullYear() !== currentDate.getFullYear()) {
                 transDate = new Date(currentDate); 
             }
@@ -697,16 +711,11 @@
         function resetAll() { if(confirm("¿Borrar todo?")) { localStorage.removeItem(DB_KEY); location.reload(); } }
         
         function getIcon(name, cat) {
-            // Smart Match
             const lowerName = (name || '').toLowerCase();
             const map = { 'netflix': '🎬', 'spotify': '🎵', 'mercado': '🛒', 'comida': '🍔', 'uber': '🚕', 'transporte': '🚌', 'gasolina': '⛽', 'cine': '🍿', 'arriendo': '🏠', 'luz': '💡', 'agua': '💧', 'internet': '🌐', 'celular': '📱', 'gym': '💪', 'salud': '💊', 'regalo': '🎁', 'viaje': '✈️', 'ropa': '👕', 'cafe': '☕', 'cerveza': '🍺', 'ahorro': '🐷', 'banco': '🏦', 'nomina': '💰', 'sueldo': '💰', 'ara': '🛒', 'isimo': '🛒', 'olimpica': '🛒', 'exito': '🛒', 'd1': '🛒' };
             for (const key in map) if (lowerName.includes(key)) return map[key];
-            
-            // Category Fallback
             return CATEGORY_ICONS[cat] || '❓';
         }
     </script>
 </body>
 </html>
-
-
